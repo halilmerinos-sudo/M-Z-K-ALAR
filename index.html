@@ -1,0 +1,2591 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070a12">
+<title>Müzik TV + Oto Radyo PRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
+<style>
+
+/* ===== Genel değişkenler ve sıfırlama ===== */
+:root{
+  --arka:#07080d; --panel:#12151f; --panel2:#1b2030;
+  --cizgi:#2a3145; --yazi:#e9edf7; --soluk:#98a1b8;
+  --vurgu:#ffb400; --vurgu2:#ff5d7a; --yesil:#39d98a;
+  --golge:0 18px 45px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 700px at 50% -10%,#1a2138 0%,var(--arka) 60%);
+  color:var(--yazi); min-height:100vh;
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+/* ===== Üst başlık ===== */
+.ustBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  max-width:1400px;margin:0 auto 16px}
+.marka{font-size:26px;font-weight:800;letter-spacing:.5px}
+.marka span{color:var(--vurgu)}
+.saatKutu{margin-left:auto;background:var(--panel);border:1px solid var(--cizgi);
+  border-radius:10px;padding:8px 14px;font-variant-numeric:tabular-nums;color:var(--soluk)}
+/* ===== Yerleşim ===== */
+.duzen{display:grid;grid-template-columns:250px 1fr 300px;gap:16px;
+  max-width:1400px;margin:0 auto;align-items:start}
+@media (max-width:1150px){.duzen{grid-template-columns:1fr}}
+.kart{background:var(--panel);border:1px solid var(--cizgi);border-radius:16px;
+  box-shadow:var(--golge);overflow:hidden}
+.kartBaslik{padding:12px 14px;border-bottom:1px solid var(--cizgi);
+  font-size:13px;font-weight:700;letter-spacing:1.2px;color:var(--soluk);
+  text-transform:uppercase;display:flex;align-items:center;gap:8px}
+/* ===== Kanal listesi ===== */
+.kanalListe{max-height:70vh;overflow:auto}
+.kanalOge{display:flex;gap:10px;align-items:center;padding:11px 14px;
+  cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:.15s}
+.kanalOge:hover{background:var(--panel2)}
+.kanalOge.aktif{background:linear-gradient(90deg,rgba(255,180,0,.22),transparent);
+  border-left:3px solid var(--vurgu)}
+.kanalNo{width:30px;height:30px;flex:0 0 30px;border-radius:8px;
+  background:var(--panel2);display:grid;place-items:center;font-weight:800;
+  font-size:13px;color:var(--vurgu)}
+.kanalAd{font-size:14px;font-weight:600;line-height:1.25}
+.kanalTur{font-size:11px;color:var(--soluk)}
+/* ===== Ekran ===== */
+.ekranSar{position:relative;background:#000;border-radius:16px;overflow:hidden;
+  border:1px solid var(--cizgi);box-shadow:var(--golge)}
+.ekran{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.ekran iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+/* Kanal bilgi bandi (OSD) */
+.osd{position:absolute;left:16px;bottom:16px;right:16px;pointer-events:none;
+  background:rgba(8,10,16,.82);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;
+  display:flex;gap:12px;align-items:center;opacity:0;transform:translateY(12px);
+  transition:.35s}
+.osd.gorunur{opacity:1;transform:translateY(0)}
+.osdNo{background:var(--vurgu);color:#141414;font-weight:900;border-radius:8px;
+  padding:6px 10px;font-size:16px}
+.osdAd{font-weight:700}
+.osdParca{font-size:12px;color:var(--soluk)}
+
+
+/* ===== Alt kontrol çubuğu ===== */
+.altBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:12px;border-top:1px solid var(--cizgi);background:var(--panel)}
+.dugme{background:var(--panel2);color:var(--yazi);border:1px solid var(--cizgi);
+  border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.dugme:hover{background:#262d42;border-color:#3b4560}
+.dugme.ana{background:var(--vurgu);color:#151515;border-color:var(--vurgu)}
+.dugme.ana:hover{filter:brightness(1.08)}
+.dugme.kirmizi{background:var(--vurgu2);color:#1a1a1a;border-color:var(--vurgu2)}
+.sesSar{display:flex;align-items:center;gap:8px;margin-left:auto;color:var(--soluk);font-size:12px}
+input[type=range]{accent-color:var(--vurgu);width:120px}
+/* ===== Şarklı listesi ===== */
+.parcaListe{max-height:34vh;overflow:auto}
+.parcaOge{display:flex;gap:9px;align-items:center;padding:9px 13px;cursor:pointer;
+  font-size:13px;border-bottom:1px solid rgba(255,255,255,.045)}
+.parcaOge:hover{background:var(--panel2)}
+.parcaOge.aktif{background:rgba(57,217,138,.14);color:#bff5d8}
+.parcaNo{color:var(--soluk);font-size:11px;width:24px;flex:0 0 24px;text-align:right}
+.parcaSure{margin-left:auto;color:var(--soluk);font-size:11px;font-variant-numeric:tabular-nums}
+/* ===== EPG rehberi ===== */
+.rehberOrtu{position:fixed;inset:0;background:rgba(3,4,8,.86);z-index:60;
+  display:none;padding:24px;overflow:auto}
+.rehberOrtu.acik{display:block}
+.rehber{max-width:1150px;margin:0 auto;background:var(--panel);
+  border:1px solid var(--cizgi);border-radius:18px;overflow:hidden;box-shadow:var(--golge)}
+.rehberUst{display:flex;align-items:center;gap:12px;padding:16px 18px;
+  border-bottom:1px solid var(--cizgi)}
+.rehberUst h2{font-size:18px}
+.rehberTablo{width:100%;border-collapse:collapse;font-size:13px}
+.rehberTablo th,.rehberTablo td{padding:9px 12px;text-align:left;
+  border-bottom:1px solid rgba(255,255,255,.06)}
+.rehberTablo th{color:var(--soluk);font-size:11px;text-transform:uppercase;
+  letter-spacing:1px;position:sticky;top:0;background:var(--panel2)}
+.rehberTablo tr:hover td{background:var(--panel2);cursor:pointer}
+.simdi{color:var(--yesil);font-weight:700}
+.rehberTablo tr.aktifSatir td{background:rgba(255,180,0,.10)}
+.rehberTablo td:first-child{color:var(--vurgu);font-weight:800;
+  font-variant-numeric:tabular-nums;width:44px}
+.rozet{display:inline-block;background:var(--panel2);border:1px solid var(--cizgi);
+  border-radius:20px;padding:2px 9px;font-size:11px;color:var(--soluk)}
+/* ===== Kumanda ===== */
+.kumandaOrtu{position:fixed;inset:0;background:rgba(3,4,8,.8);z-index:70;
+  display:none;place-items:center;padding:20px}
+.kumandaOrtu.acik{display:grid}
+.kumanda{width:270px;background:linear-gradient(180deg,#242a3b,#14181f);
+  border:1px solid #39415c;border-radius:28px;padding:18px;box-shadow:var(--golge)}
+.kumandaBaslik{text-align:center;font-size:11px;letter-spacing:2px;
+  color:var(--soluk);margin-bottom:14px}
+.tusIzgara{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tus{background:#2c3348;border:1px solid #3d4763;color:var(--yazi);
+  border-radius:12px;padding:11px 0;font-size:13px;font-weight:700;cursor:pointer}
+.tus:hover{background:#3a435e}
+.tus:active{transform:scale(.94)}
+.tus.guc{background:var(--vurgu2);color:#141414;border-color:var(--vurgu2)}
+.tus.ok{background:var(--vurgu);color:#141414;border-color:var(--vurgu)}
+.tus.genis{grid-column:span 3}
+.tus.kucuk{font-size:11px;letter-spacing:.3px}
+/* Yön tuşları pedi: ortada OK, çevresinde 4 yön */
+.yonPad{position:relative;width:100%;aspect-ratio:1/1;margin:12px 0 4px;
+  border-radius:50%;background:radial-gradient(circle at 50% 45%,#39415c,#222839);
+  border:1px solid #454f6e}
+.yonPad .tus{position:absolute;background:transparent;border:none;font-size:16px;
+  color:#cfd6e6;padding:0;width:34%;height:26%}
+.yonPad .tus:hover{color:var(--vurgu);background:transparent}
+.yonPad .yukari{top:3%;left:33%}
+.yonPad .asagi{bottom:3%;left:33%}
+.yonPad .sol{left:2%;top:37%;width:26%;height:26%}
+.yonPad .sag{right:2%;top:37%;width:26%;height:26%}
+.yonPad .okTus{position:absolute;left:29%;top:29%;width:42%;height:42%;
+  border-radius:50%;background:var(--vurgu);color:#141414;border:1px solid var(--vurgu);
+  font-size:13px;font-weight:800}
+.yonPad .okTus:hover{filter:brightness(1.1);background:var(--vurgu)}
+/* Kanal listesi kaydırma: 11 kanal sığmazsa kaydır */
+.kanalListe{max-height:62vh;overflow:auto}
+.kanalListe::-webkit-scrollbar,.parcaListe::-webkit-scrollbar{width:8px}
+.kanalListe::-webkit-scrollbar-thumb,.parcaListe::-webkit-scrollbar-thumb{
+  background:#39415c;border-radius:8px}
+/* ===== Bildirim ===== */
+.bildirim{position:fixed;top:18px;left:50%;transform:translate(-50%,-140%);
+  background:var(--vurgu);color:#141414;font-weight:700;font-size:13px;
+  padding:10px 18px;border-radius:12px;z-index:90;transition:.3s}
+.bildirim.gorunur{transform:translate(-50%,0)}
+/* ===== Dosya kipi uyarı şeridi ===== */
+.dosyaUyari{display:none;background:#3a2f16;border-top:1px solid #5c4a1e;
+  color:#f0d79a;font-size:12.5px;line-height:1.6;padding:10px 16px}
+.dosyaUyari a{color:var(--vurgu);font-weight:700}
+.ipucu{padding:12px 14px;font-size:12px;color:var(--soluk);line-height:1.65}
+.ipucu kbd{background:var(--panel2);border:1px solid var(--cizgi);border-radius:5px;
+  padding:1px 6px;font-size:11px}
+/* ===== Arama paneli ===== */
+.aramaKutu{padding:11px 13px;border-bottom:1px solid var(--cizgi)}
+/* Kip sekmeleri: YouTube (canlı) / Arşiv (yerleşik liste) */
+.kipSekme{display:flex;gap:6px;margin-bottom:8px}
+.kipTus{flex:1;background:var(--panel2);color:var(--soluk);border:1px solid var(--cizgi);
+  border-radius:9px;padding:6px 8px;font-size:11.5px;font-weight:700;cursor:pointer;
+  font-family:inherit;letter-spacing:.3px}
+.kipTus.aktif{background:linear-gradient(180deg,#ff2f46,#c9121f);color:#fff;
+  border-color:#ff2f46}
+.kipTus.aktif.arsivKip{background:linear-gradient(180deg,#ffc42e,#e39400);
+  color:#161616;border-color:var(--vurgu)}
+.kipTus:hover{color:var(--yazi)}
+.aramaSatir{display:flex;gap:7px}
+.aramaGiris{flex:1;min-width:0;background:var(--panel2);color:var(--yazi);
+  border:1px solid var(--cizgi);border-radius:9px;padding:8px 10px;font-size:13px;
+  font-family:inherit;outline:none}
+.aramaGiris:focus{border-color:var(--vurgu)}
+.aramaGiris::placeholder{color:var(--soluk)}
+.bulDugme{background:var(--vurgu);color:#151515;border:1px solid var(--vurgu);
+  border-radius:9px;padding:8px 13px;font-size:13px;font-weight:800;cursor:pointer;
+  font-family:inherit;flex:0 0 auto}
+.bulDugme:hover{filter:brightness(1.08)}
+.temizleDugme{background:var(--panel2);color:var(--soluk);border:1px solid var(--cizgi);
+  border-radius:9px;padding:8px 11px;font-size:13px;cursor:pointer;font-family:inherit;
+  flex:0 0 auto}
+.temizleDugme:hover{color:var(--yazi);background:#262d42}
+.aramaBilgi{margin-top:8px;font-size:11.5px;color:var(--soluk);line-height:1.5}
+.aramaOneri{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.oneriEtiket{background:var(--panel2);border:1px solid var(--cizgi);border-radius:20px;
+  padding:3px 10px;font-size:11px;color:var(--soluk);cursor:pointer}
+.oneriEtiket:hover{color:var(--vurgu);border-color:var(--vurgu)}
+/* Sonuç listesi */
+.sonucListe{max-height:38vh;overflow:auto;display:none;
+  border-top:1px solid var(--cizgi)}
+.sonucListe.acik{display:block}
+/* Sonuçlar açıkken alttaki parça listesi kısalır; panel ekrana sığar */
+.sonucListe.acik ~ .parcaListe{max-height:22vh}
+.sonucOge{display:flex;gap:10px;align-items:center;padding:9px 13px;cursor:pointer;
+  font-size:13px;border-bottom:1px solid rgba(255,255,255,.045)}
+.sonucOge:hover{background:var(--panel2)}
+.sonucOge.aktif{background:rgba(57,217,138,.14);color:#bff5d8}
+.sonucOrta{min-width:0;flex:1}
+.sonucAd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sonucSanatci{font-size:11px;color:var(--soluk);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sonucKanal{flex:0 0 26px;text-align:right;font-size:11px;font-weight:800;
+  color:var(--vurgu);font-variant-numeric:tabular-nums}
+.sonucSure{flex:0 0 auto;color:var(--soluk);font-size:11px;
+  font-variant-numeric:tabular-nums}
+.sonucBos{padding:14px 13px;font-size:12.5px;color:var(--soluk);line-height:1.6}
+.eslesme{color:var(--vurgu);font-weight:700}
+/* Canlı YouTube sonuçları: küçük kapak resmi + başlık + kanal */
+.ytOge{display:flex;gap:9px;align-items:flex-start;padding:8px 12px;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.045)}
+.ytOge:hover{background:var(--panel2)}
+.ytOge.aktif{background:rgba(255,47,70,.16)}
+.ytKapak{flex:0 0 74px;width:74px;height:42px;border-radius:6px;background:#000;
+  object-fit:cover;border:1px solid var(--cizgi)}
+.ytBilgi{min-width:0;flex:1}
+.ytBaslik{font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.ytKanal{font-size:11px;color:var(--soluk);margin-top:3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.ytSure{font-size:10.5px;color:var(--vurgu);font-variant-numeric:tabular-nums}
+/* Yükleniyor / hata durumları */
+.aramaYukleniyor{padding:14px 13px;font-size:12.5px;color:var(--soluk);
+  display:flex;align-items:center;gap:9px}
+.donen{width:14px;height:14px;border:2px solid var(--cizgi);border-top-color:var(--vurgu);
+  border-radius:50%;animation:don .8s linear infinite;flex:0 0 auto}
+@keyframes don{to{transform:rotate(360deg)}}
+.aramaHata{padding:12px 13px;font-size:12px;color:#f0d79a;background:#3a2f16;
+  line-height:1.6;border-bottom:1px solid #5c4a1e}
+.aramaHata a{color:var(--vurgu);font-weight:700}
+.ytRozet{display:inline-block;background:#c9121f;color:#fff;font-size:9.5px;
+  font-weight:800;border-radius:4px;padding:1px 5px;margin-right:5px;
+  vertical-align:1px;letter-spacing:.4px}
+
+
+:root{--bg:#070a12;--p:#111827;--p2:#1b2638;--ln:#35445d;--tx:#f8fbff;--mu:#aab7c9;--a:#ffb020;--c:#36e4ff;--g:#43f09b;--r:#ff586e;color-scheme:dark}
+html[data-theme=light]{--bg:#edf2f8;--p:#fff;--p2:#e2e9f2;--ln:#aebccd;--tx:#09111d;--mu:#48586d;--a:#b96300;--c:#006d88;--g:#087f4b;--r:#ba263e;color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+#radyoApp{background:var(--bg);color:var(--tx);font-family:system-ui,Segoe UI,Arial,sans-serif;overflow:hidden}
+button,input,select{font:inherit}
+button{color:inherit;cursor:pointer;transition:transform 0.1s ease, filter 0.15s ease}
+button:active, button.clicked{transform:scale(0.92);filter:brightness(1.3)}
+
+#app{height:calc(100dvh - 54px);max-width:1120px;margin:auto;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.top{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brand{flex:1;min-width:0}
+.brand h1{margin:0;color:var(--a);font-size:clamp(17px,3vw,25px);letter-spacing:1.5px}
+.brand h1 b{color:var(--tx)}
+.brand p{margin:2px 0 0;color:var(--mu);font-size:9px;letter-spacing:1.2px}
+.date{display:flex;flex-direction:column;align-items:flex-end;padding:0 7px}
+.date b{color:var(--c);font-size:clamp(15px,2.2vw,20px);font-weight:950}
+.date span{color:var(--a);font-size:clamp(10px,1.5vw,13px);font-weight:850}
+.actions{display:flex;gap:5px}
+.ico{width:40px;height:38px;padding:0;border:1px solid var(--ln);background:var(--p);border-radius:10px;font-size:16px;flex-shrink:0}
+
+/* Sabit ve Esnek Çalan Panel (Taşma Yapmaz) */
+.now{position:relative;display:flex;align-items:center;gap:12px;padding:10px;flex-shrink:0;border:1px solid var(--ln);border-radius:16px;background:linear-gradient(135deg,var(--p),var(--p2));box-shadow:0 10px 30px #0009;overflow:hidden}
+
+.visual{width:130px;height:110px;flex-shrink:0;position:relative;overflow:hidden;border:1px solid var(--ln);border-radius:12px;background:#03060b;display:grid;place-items:center}
+.cover{position:absolute;inset:0;display:grid;place-items:center;color:var(--a);font-size:36px;font-weight:950;background:#03060b}
+.cover img{width:100%;height:100%;object-fit:cover}
+.live{position:absolute;top:4px;left:4px;z-index:2;padding:2px 5px;border-radius:5px;background:var(--r);font-size:7px;font-weight:950}
+.eyebrow{font-size:9px;color:var(--g);font-weight:950;letter-spacing:1.2px}
+
+.now-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.marquee-box{overflow:hidden;white-space:nowrap;position:relative;width:100%}
+.marquee-content{display:inline-block;animation: marqueeScroll 12s linear infinite;padding-right:40px}
+.marquee-content-slow{display:inline-block;animation: marqueeScroll 16s linear infinite;padding-right:40px}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.name{margin:1px 0;font-size:clamp(17px,2.8vw,28px);font-weight:950}
+.meta{font-size:10px;color:var(--mu);display:flex;align-items:center;gap:6px;margin:2px 0}
+.freq{display:inline-block;padding:2px 6px;border-radius:5px;background:var(--a);color:#080b10;font-weight:950}
+
+.eq-speaker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 420px;
+  margin: 3px 0;
+}
+.panel-eq{
+  flex: 1;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:2px;
+  height:16px;padding:0 2px;background:rgba(0,0,0,0.25);border-radius:4px;overflow:hidden;border:1px solid var(--ln);
+}
+.panel-eq i{
+  flex:1;height:15%;background:linear-gradient(0deg, var(--c) 0%, var(--a) 60%, var(--r) 100%);
+  border-radius:1px;transition:height 60ms ease;min-height:2px;
+}
+.speaker-box {
+  width: 28px;
+  height: 24px;
+  flex-shrink:0;
+  background: var(--p2);
+  border: 1px solid var(--ln);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
+}
+.speaker-box.bass-hit {
+  transform: scale(1.18);
+  border-color: var(--a);
+  box-shadow: 0 0 10px var(--a);
+}
+
+.inline-vol {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--p2);
+  border: 1px solid var(--ln);
+  padding: 4px 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  color: var(--mu);
+}
+.inline-vol input {
+  width: 110px;
+  accent-color: var(--a);
+  height: 5px;
+}
+
+.stat{color:var(--mu);font-size:9px}
+
+/* Kontrol Paneli Sabit ve Taşmaz */
+.mainctl{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;padding-left:4px}
+.controls{display:flex;gap:8px;align-items:center}
+.ctl{width:48px;height:48px;border:2px solid var(--c);background:var(--p);border-radius:14px;color:var(--c);font-size:20px;display:grid;place-items:center}
+.ctl.play{width:66px;height:66px;border-color:var(--a);background:linear-gradient(145deg,var(--a),#ff6438);color:#080b10;font-size:28px}
+.ctl.play.playing{background:linear-gradient(145deg,#43f09b,#36e4ff);border-color:#43f09b;box-shadow:0 0 15px #43f09b88}
+.ctl.stop{border-color:var(--r);color:var(--r)}
+.mute{min-width:110px;min-height:40px;padding:6px 10px;border:2px solid var(--r);border-radius:11px;background:linear-gradient(145deg,#401622,var(--p));color:#ff7181;font-size:11px;font-weight:950}
+.mute.on{background:var(--r);color:#080b10}
+
+.eqbar{display:flex;align-items:center;gap:5px;padding:4px 6px;flex-shrink:0;overflow:auto;scrollbar-width:none;background:var(--p);border:1px solid var(--ln);border-radius:10px}
+.eqbar strong{color:var(--a);font-size:10px;padding-left:2px}
+.eqbtn{flex:0 0 auto;padding:4px 8px;border:1px solid var(--ln);border-radius:6px;background:var(--p2);font-size:10px;font-weight:900}
+.eqbtn.on{color:#080b10;background:var(--a);border-color:var(--a)}
+
+.library{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
+.tools{display:flex;gap:6px;flex-shrink:0;position:relative}
+.search-wrap{position:relative;flex:1;display:flex;align-items:center}
+.search{width:100%;padding:8px 30px 8px 10px;color:var(--tx);background:var(--p);border:1px solid var(--ln);border-radius:9px;font-size:12px}
+.clear-btn{position:absolute;right:8px;background:none;border:0;color:var(--mu);font-size:14px;cursor:pointer;padding:4px;display:none}
+.clear-btn.show{display:block}
+.sort-btn{padding:6px 10px;background:var(--p);border:1px solid var(--ln);border-radius:9px;color:var(--tx);font-size:11px;font-weight:900}
+.count{align-self:center;color:var(--mu);font-size:11px}
+
+/* Kanal Listesi Taşmaz Kaydırmalı */
+.list{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));align-content:start;gap:7px;padding-bottom:6px}
+.station{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:8px;padding:8px;background:var(--p);border:1px solid var(--ln);border-radius:12px;text-align:left;user-select:none;transition:border-color 0.15s ease}
+.station:hover{border-color:var(--c)}
+.station.active{border-color:var(--a);box-shadow:0 0 0 1px var(--a) inset}
+.station.dragging{opacity:0.4;border:2px dashed var(--a)}
+
+.avatar{width:46px;height:46px;display:grid;place-items:center;border-radius:10px;color:#071018;background:var(--sc,var(--a));font-size:11px;font-weight:950;overflow:hidden;position:relative}
+.avatar img{width:100%;height:100%;object-fit:cover}
+
+.sinfo{min-width:0;cursor:pointer}
+.sname{font-size:13px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ssub{font-size:9px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.sfreq{font-size:9px;color:var(--a);font-weight:900;margin-top:2px}
+
+.drag-ctl{display:flex;align-items:center;gap:3px}
+.move-btn{background:var(--p2);border:1px solid var(--ln);border-radius:4px;color:var(--mu);font-size:10px;padding:4px 6px}
+.move-btn:active{background:var(--a);color:#080b10}
+.del-btn{background:rgba(255,88,110,0.15);border:1px solid var(--r);border-radius:4px;color:var(--r);font-size:10px;padding:4px 6px;font-weight:900}
+.del-btn:active{background:var(--r);color:#fff}
+.drag-handle{cursor:grab;padding:5px 6px;color:var(--mu);font-size:14px}
+.add-btn{padding:5px 8px;background:var(--a);color:#080b10;border:0;border-radius:6px;font-size:10px;font-weight:950}
+
+.foot{text-align:center;color:#c084fc;font-size:9px;letter-spacing:1px;flex-shrink:0}
+.foot b{color:var(--a)}
+
+.modal{position:fixed;inset:0;z-index:20;background:#000c;display:none;place-items:center;padding:16px}
+.modal.show{display:grid}
+.box{width:min(470px,100%);max-height:90dvh;overflow:auto;padding:16px;background:var(--p);border:1px solid var(--ln);border-radius:17px}
+.box h2{margin:0 0 13px;color:var(--a);font-size:18px}
+.close{width:100%;margin-top:13px;padding:11px;border:0;border-radius:10px;background:var(--a);color:#080b10;font-weight:950}
+.field{display:grid;gap:4px;margin-bottom:10px;font-size:11px;color:var(--mu);font-weight:800}
+.field input{padding:9px 10px;background:var(--p2);border:1px solid var(--ln);border-radius:9px;color:var(--tx);font-size:12px}
+
+.toast{position:fixed;left:50%;bottom:15px;z-index:50;transform:translate(-50%,20px);opacity:0;background:var(--p);border:1px solid var(--a);padding:10px 13px;border-radius:9px;font-size:11px;transition:.2s}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+@media(max-width:768px){
+  .now{flex-direction:column;align-items:stretch;gap:8px;padding:8px}
+  .visual{width:100%;height:85px}
+  .mainctl{flex-direction:row;justify-content:space-between;align-items:center;width:100%;padding-left:0}
+  .controls{gap:6px}
+  .ctl{width:42px;height:42px;font-size:18px;border-radius:12px}
+  .ctl.play{width:56px;height:56px;font-size:24px}
+  .mute{min-height:38px;min-width:90px;font-size:10px}
+  .date{display:none}
+  .eq-speaker-wrapper{max-width:100%}
+  .inline-vol input{width:80px}
+  .list{grid-template-columns:1fr}
+}
+
+
+/* ===== Ortak sekme çubuğu ===== */
+.kipBar{position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:8px;
+  padding:8px 14px;background:#0b0e17;border-bottom:1px solid #2a3145;height:54px}
+.kipBar .baslik{font-weight:900;letter-spacing:1px;color:#e9edf7;margin-right:auto;font-size:15px}
+.kipBar .baslik b{color:#ffb400}
+.kipSek{background:#1b2030;color:#98a1b8;border:1px solid #2a3145;border-radius:10px;
+  padding:8px 16px;font-weight:800;font-size:13px;cursor:pointer}
+.kipSek.aktif{background:#ffb400;color:#151515;border-color:#ffb400}
+body.radyoKip{background:var(--bg)}
+#tvApp{padding:18px}
+@media(max-width:600px){.kipBar .baslik{display:none}.kipSek{flex:1}}
+
+</style>
+</head>
+<body>
+<div class="kipBar">
+  <div class="baslik">▶ MÜZİK <b>TV</b> + 📻 OTO <b>RADYO</b></div>
+  <button class="kipSek aktif" id="sekTv" onclick="kipSec('tv')">📺 Müzik TV</button>
+  <button class="kipSek" id="sekRadyo" onclick="kipSec('radyo')">📻 Radyo</button>
+</div>
+<div id="tvApp">
+
+
+<!-- ===== Üst başlık ===== -->
+<div class="ustBar">
+  <div class="marka">▶ MÜZİK <span>TV</span></div>
+  <span class="rozet" id="rozetOzet">11 kanal</span>
+  <span class="rozet" id="kanalGiris" style="display:none">--</span>
+  <div class="saatKutu" id="saatKutu">--:--:--</div>
+</div>
+
+<div class="duzen">
+
+  <!-- ===== Sol: kanal listesi ===== -->
+  <div class="kart">
+    <div class="kartBaslik">📺 Kanallar</div>
+    <div class="kanalListe" id="kanalListe"></div>
+    <div class="ipucu">
+      <kbd>↑</kbd><kbd>↓</kbd> kanal • <kbd>←</kbd><kbd>→</kbd> parça • <kbd>OK</kbd> oynat<br>
+      <kbd>0</kbd>–<kbd>9</kbd> kanal no (11 için <kbd>1</kbd><kbd>1</kbd>)<br>
+      <kbd>G</kbd> rehber • <kbd>K</kbd> kumanda • <kbd>Geri</kbd> kapat<br>
+      <kbd>A</kbd> veya <kbd>/</kbd> YouTube araması
+    </div>
+  </div>
+
+  <!-- ===== Orta: ekran ve kontroller ===== -->
+  <div>
+    <div class="ekranSar">
+      <div class="ekran">
+        <div id="oynaticiYuva"></div>
+        <div class="osd" id="osd">
+          <div class="osdNo" id="osdNo">1</div>
+          <div>
+            <div class="osdAd" id="osdAd">—</div>
+            <div class="osdParca" id="osdParca">—</div>
+          </div>
+        </div>
+      </div>
+      <!-- Dosyadan (file://) açıldığında YouTube gömmeyi engelleyebilir; uyarı şeridi -->
+      <div class="dosyaUyari" id="dosyaUyari">
+        ℹ️ Sayfa doğrudan dosyadan açıldı. YouTube bazı parçaları bu kipte engelleyebilir;
+        tüm parçalar sorunsuz oynasın diye dosyayı bir web sunucusundan açın
+        ya da <a id="ytBaglanti" href="#" target="_blank" rel="noopener">parçayı YouTube’da açın</a>.
+      </div>
+      <div class="altBar">
+        <button class="dugme" onclick="kanalDegistir(-1)">⏮ Kanal</button>
+        <button class="dugme ana" id="oynatDugme" onclick="oynatDurdur()">⏸ Duraklat</button>
+        <button class="dugme" onclick="kanalDegistir(1)">Kanal ⏭</button>
+        <button class="dugme" onclick="parcaDegistir(-1)">◀ Parça</button>
+        <button class="dugme" onclick="parcaDegistir(1)">Parça ▶</button>
+        <button class="dugme" onclick="karisikDegis()" id="karisikDugme">🔀 Karışık: Kapalı</button>
+        <button class="dugme" onclick="rehberAcKapa()">📅 Rehber</button>
+        <button class="dugme kirmizi" onclick="kumandaAcKapa()">🎛 Kumanda</button>
+        <div class="sesSar">
+          🔊 <input type="range" id="sesKaydirac" min="0" max="100" value="85">
+          <span id="sesYazi">85</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Sağ: arama paneli + parça listesi ===== -->
+  <div class="kart">
+    <div class="kartBaslik">🔎 YouTube’da ara</div>
+
+    <!-- Arama kutusu: iki kip — canlı YouTube araması ya da yerleşik arşiv -->
+    <div class="aramaKutu">
+      <div class="kipSekme">
+        <button class="kipTus aktif" id="kipYt" onclick="aramaKipiSec('yt')">▶ YOUTUBE</button>
+        <button class="kipTus arsivKip" id="kipArsiv" onclick="aramaKipiSec('arsiv')">📁 KANALLARIM</button>
+      </div>
+      <div class="aramaSatir">
+        <input class="aramaGiris" id="aramaGiris" type="text" autocomplete="off"
+               placeholder="Sanatçı ya da şarkı adı yazın…">
+        <button class="bulDugme" id="bulDugme" onclick="araBul()">Bul</button>
+        <button class="temizleDugme" id="temizleDugme" onclick="aramaTemizle()"
+                title="Aramayı temizle">✕</button>
+      </div>
+      <div class="aramaBilgi" id="aramaBilgi">
+        Tüm YouTube’da arama yapar — listede olmayan sanatçı ve şarkıları da bulur.
+        Sonuca tıklayın, hemen çalar.
+      </div>
+      <!-- Hızlı öneriler; kip değiştikçe içeriği yenilenir -->
+      <div class="aramaOneri" id="aramaOneri"></div>
+    </div>
+
+    <!-- Arama sonuçları; bir sonuca tıklanınca video hemen çalışır -->
+    <div class="sonucListe" id="sonucListe"></div>
+
+    <div class="kartBaslik" style="border-top:1px solid var(--cizgi)">🎵 <span id="listeBaslik">Parçalar</span></div>
+    <div class="parcaListe" id="parcaListe"></div>
+  </div>
+</div>
+
+<!-- ===== EPG rehberi ===== -->
+<div class="rehberOrtu" id="rehberOrtu" onclick="if(event.target===this)rehberKapat()">
+  <div class="rehber">
+    <div class="rehberUst">
+      <h2>📅 Yayın Akışı (EPG)</h2>
+      <span class="rozet" id="rehberSaat">—</span>
+      <button class="dugme" style="margin-left:auto" onclick="rehberKapat()">Kapat ✕</button>
+    </div>
+    <div style="max-height:70vh;overflow:auto">
+      <table class="rehberTablo">
+        <thead><tr><th>No</th><th>Kanal</th><th>Şimdi</th><th>Sıradaki</th><th>Sonra</th><th>Parça</th></tr></thead>
+        <tbody id="rehberGovde"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Kumanda: gerçek TV kumandası düzeni ===== -->
+<div class="kumandaOrtu" id="kumandaOrtu" onclick="if(event.target===this)kumandaKapat()">
+  <div class="kumanda">
+    <div class="kumandaBaslik">MÜZİK TV KUMANDA</div>
+
+    <!-- Üst sıra: kapat / rehber / sessiz -->
+    <div class="tusIzgara">
+      <button class="tus guc" onclick="kumandaKapat()" title="Kumandayı kapat">⏻</button>
+      <button class="tus" onclick="rehberAcKapa()">REH</button>
+      <button class="tus" onclick="sesKapaAc()" id="sesTus">🔊</button>
+    </div>
+
+    <!-- Yön tuşları ve OK -->
+    <div class="yonPad">
+      <button class="tus yon yukari" onclick="kanalDegistir(-1)">▲</button>
+      <button class="tus yon sol" onclick="parcaDegistir(-1)">◀</button>
+      <button class="tus okTus" onclick="oynatDurdur()">OK</button>
+      <button class="tus yon sag" onclick="parcaDegistir(1)">▶</button>
+      <button class="tus yon asagi" onclick="kanalDegistir(1)">▼</button>
+    </div>
+
+    <!-- Rakam tuşları: 1-9, 0 ve iki haneli giriş -->
+    <div class="tusIzgara" style="margin-top:10px">
+      <button class="tus" onclick="rakamBas(1)">1</button>
+      <button class="tus" onclick="rakamBas(2)">2</button>
+      <button class="tus" onclick="rakamBas(3)">3</button>
+      <button class="tus" onclick="rakamBas(4)">4</button>
+      <button class="tus" onclick="rakamBas(5)">5</button>
+      <button class="tus" onclick="rakamBas(6)">6</button>
+      <button class="tus" onclick="rakamBas(7)">7</button>
+      <button class="tus" onclick="rakamBas(8)">8</button>
+      <button class="tus" onclick="rakamBas(9)">9</button>
+      <button class="tus kucuk" onclick="onceki()" title="Önceki kanal">↩ GERİ</button>
+      <button class="tus" onclick="rakamBas(0)">0</button>
+      <button class="tus kucuk" onclick="karisikDegis()">🔀 KAR</button>
+    </div>
+
+    <!-- Ses ve kanal çiftleri -->
+    <div class="tusIzgara" style="margin-top:10px">
+      <button class="tus kucuk" onclick="sesAyar(10)">SES +</button>
+      <button class="tus ok kucuk" onclick="kanalDegistir(-1)">CH ▲</button>
+      <button class="tus kucuk" onclick="parcaDegistir(1)">⏭</button>
+      <button class="tus kucuk" onclick="sesAyar(-10)">SES −</button>
+      <button class="tus ok kucuk" onclick="kanalDegistir(1)">CH ▼</button>
+      <button class="tus kucuk" onclick="parcaDegistir(-1)">⏮</button>
+      <button class="tus genis" onclick="oynatDurdur()">▶ / ⏸</button>
+    </div>
+  </div>
+</div>
+
+<div class="bildirim" id="bildirim">—</div>
+
+
+</div>
+<div id="radyoApp" style="display:none">
+
+<div id="app">
+  <header class="top">
+    <div class="brand"><h1>OTO RADYO <b>PRO</b></h1><p>CANLI YAYIN · SÜRÜŞE HAZIR</p></div>
+    <div class="date"><b id="clock">00:00</b><span id="date">--.--.----</span></div>
+    <div><button class="ico" id="theme" title="Tema Değiştir">🌗</button></div>
+    <div class="actions">
+      <button class="ico" id="timer" title="Uyku Zamanlayıcı">⏱</button>
+    </div>
+  </header>
+  
+  <section class="now">
+    <div class="visual"><div class="cover" id="cover">FM</div><span class="live" id="live">HAZIR</span></div>
+    <div class="now-info">
+      <div class="eyebrow" id="eyebrow">RADYO SEÇİN</div>
+      
+      <div class="name marquee-box">
+        <div class="marquee-content" id="name">Bir istasyon seçin</div>
+      </div>
+
+      <div class="meta">
+        <span class="freq" id="freq">--.-- MHz</span>
+        <span class="marquee-box" style="display:inline-block; vertical-align:middle; width:calc(100% - 85px);">
+          <span class="marquee-content-slow" id="sub" style="display:inline-block;">Yayın listeden seçilebilir</span>
+        </span>
+      </div>
+
+      <div class="eq-speaker-wrapper">
+        <div class="speaker-box" id="spkLeft">🔊</div>
+        <div class="panel-eq" id="vBar"></div>
+        <div class="speaker-box" id="spkRight">🔊</div>
+        <div class="inline-vol">
+          <span>🔊</span>
+          <input id="volume" type="range" min="0" max="100" value="85">
+          <span id="voltxt">85%</span>
+        </div>
+      </div>
+      
+      <div class="stat" id="stat">Hazır</div>
+    </div>
+    <div class="mainctl">
+      <div class="controls">
+        <button class="ctl" id="prev">⏮</button>
+        <button class="ctl play" id="play">▶</button>
+        <button class="ctl stop" id="stop">⏹</button>
+        <button class="ctl" id="next">⏭</button>
+      </div>
+      <button class="mute" id="mute">🔇 SESSİZ</button>
+    </div>
+  </section>
+
+  <div class="eqbar" id="eqbar">
+    <strong>SES MODU:</strong>
+    <button class="eqbtn on" data-preset="flat">Düz</button>
+    <button class="eqbtn" data-preset="arabesk">Arabesk</button>
+    <button class="eqbtn" data-preset="pop">Pop</button>
+    <button class="eqbtn" data-preset="rock">Rock</button>
+    <button class="eqbtn" data-preset="bass">Bas Güçlendir</button>
+  </div>
+
+  <section class="library">
+    <div class="tools">
+      <div class="search-wrap">
+        <input class="search" id="search" placeholder="Radyo ara (yerel veya web)…">
+        <button class="clear-btn" id="clearSearch" title="Temizle">✕</button>
+      </div>
+      <button class="sort-btn" id="addModalOpen">➕ Ekle</button>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+  <footer class="foot">TASARIM VE YAPIM <b>HALİL KILIÇ</b></footer>
+</div>
+
+<div class="modal" id="addModal">
+  <div class="box">
+    <h2>Yeni İstasyon Ekle</h2>
+    <div class="field"><label>Kanal Adı</label><input id="stName" placeholder="Örn: Benim Radyom"></div>
+    <div class="field"><label>Alt Açıklama</label><input id="stSub" placeholder="Örn: Pop & Hits"></div>
+    <div class="field"><label>Frekans (MHz)</label><input id="stFreq" placeholder="102.5"></div>
+    <div class="field"><label>Logo / Kapak Resim URL (İsteğe Bağlı)</label><input id="stImg" placeholder="https://... logo.png"></div>
+    <div class="field"><label>Yayın Adresi (m3u8/mp3/aac)</label><input id="stSrc" placeholder="https://..."></div>
+    <button class="close" id="stSave">Kaydet</button>
+    <button class="close" id="addClose" style="background:var(--p2);color:var(--tx)">Kapat</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+</div>
+<script>
+let aktifKip="tv", tvCaliyordu=false, radyoCaliyordu=false;
+function kipSec(k){
+  if(k===aktifKip) return;
+  /* Çıkılan tarafı duraklat (iki ses aynı anda çalmasın) */
+  if(aktifKip==="tv"){
+    tvCaliyordu=oynuyor;
+    if(oynuyor) oynatDurdur();
+    rehberKapat(); kumandaKapat();
+  } else {
+    radyoCaliyordu=isPlaying;
+    if(isPlaying){
+      audio.pause(); isPlaying=false;
+      const p=document.getElementById("play");
+      p.classList.remove("playing"); p.textContent="▶";
+      document.getElementById("live").textContent="DURDU";
+    }
+  }
+  aktifKip=k;
+  document.getElementById("tvApp").style.display=(k==="tv")?"":"none";
+  document.getElementById("radyoApp").style.display=(k==="radyo")?"":"none";
+  document.body.classList.toggle("radyoKip",k==="radyo");
+  document.getElementById("sekTv").classList.toggle("aktif",k==="tv");
+  document.getElementById("sekRadyo").classList.toggle("aktif",k==="radyo");
+  /* Girilen tarafta, önceden çalıyorsa kaldığı yerden devam et */
+  if(k==="tv" && tvCaliyordu && !oynuyor) oynatDurdur();
+  if(k==="radyo" && radyoCaliyordu) document.getElementById("play").onclick();
+}
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   MÜZİK TV — tek dosyalık uygulama
+   1) Kanal verisi (aşağıda yerleşik, 11 sanatçı kanalı × 30+ parça)
+   2) Oynatıcı: sunucudan açıldığında YouTube IFrame API,
+      dosyadan (file://) açıldığında doğrudan gömülü iframe kullanılır.
+   3) Kumanda, EPG rehberi, klavye kısayolları.
+   Tüm kimlikler yayıncı tarafında "gömülmeye izinli" olarak doğrulanmıştır.
+   ===================================================================== */
+
+/* --- Durum değişkenleri --- */
+let kanalIndex = 0;      // seçili kanal
+let parcaIndex = 0;      // seçili parça
+let oynatici = null;     // IFrame API nesnesi
+let apiHazir = false;    // API yüklendi mi
+let oynuyor = true;      // oynatma durumu
+let sesSeviye = 85;      // 0-100
+let sessiz = false;
+let karisik = false;     // karışık çalma
+let osdZaman = null;
+let oncekiKanal = 0;     // "GERİ" tuşu için son izlenen kanal
+let rakamTampon = "";    // kumandada iki haneli kanal girişi
+let rakamZaman = null;   // tampon boşaltma zamanlayıcısı
+/* Canlı kip: YouTube aramasından seçilen bir video çalıyorsa true olur.
+   Bu durumda ekranda yerleşik kanal değil, aranan video vardır. */
+let canliKip = false;
+let canliParca = null;   // {kimlik, baslik, kanal, sure}
+/* Sunucu üzerinden mi açıldı? file:// ise IFrame API çalışmaz. */
+const sunucuKipi = location.protocol === "http:" || location.protocol === "https:";
+
+/* Yardımcı: saniyeyi dd:ss biçimine çevirir. */
+function sureYaz(sn){
+  const d = Math.floor(sn/60), s = sn%60;
+  return d + ":" + String(s).padStart(2,"0");
+}
+
+/* Yardımcı: kısa bildirim gösterir. */
+function bildir(metin){
+  const b = document.getElementById("bildirim");
+  b.textContent = metin;
+  b.classList.add("gorunur");
+  clearTimeout(bildir.zaman);
+  bildir.zaman = setTimeout(()=>b.classList.remove("gorunur"), 1800);
+}
+
+/* --- Kanal listesini çiz --- */
+function kanallariCiz(){
+  const kap = document.getElementById("kanalListe");
+  kap.innerHTML = "";
+  VARSAYILAN_KANALLAR.forEach((k,i)=>{
+    const d = document.createElement("div");
+    d.className = "kanalOge" + ((i===kanalIndex && !canliKip) ? " aktif" : "");
+    d.onclick = ()=>kanalSec(i, 0);
+    d.innerHTML =
+      '<div class="kanalNo">' + String(i+1).padStart(2,"0") + '</div>' +
+      '<div><div class="kanalAd"></div><div class="kanalTur"></div></div>';
+    d.querySelector(".kanalAd").textContent = k.sanatci;
+    d.querySelector(".kanalTur").textContent = k.tur + " • " + k.parcalar.length + " parça";
+    kap.appendChild(d);
+  });
+}
+
+/* --- Seçili kanalın parça listesini çiz --- */
+function parcalariCiz(){
+  const kanal = VARSAYILAN_KANALLAR[kanalIndex];
+  document.getElementById("listeBaslik").textContent =
+    kanal.sanatci + " (" + kanal.parcalar.length + ")";
+  const kap = document.getElementById("parcaListe");
+  kap.innerHTML = "";
+  kanal.parcalar.forEach((p,i)=>{
+    const d = document.createElement("div");
+    d.className = "parcaOge" + ((i===parcaIndex && !canliKip) ? " aktif" : "");
+    d.onclick = ()=>parcaSec(i);
+    d.innerHTML = '<div class="parcaNo">' + (i+1) + '</div>' +
+                  '<div class="parcaAd"></div>' +
+                  '<div class="parcaSure">' + sureYaz(p.sure||0) + '</div>';
+    d.querySelector(".parcaAd").textContent = p.ad;
+    kap.appendChild(d);
+  });
+  const etkin = kap.querySelector(".parcaOge.aktif");
+  if (etkin) etkin.scrollIntoView({block:"nearest"});
+}
+
+/* --- Ekran altındaki kanal bilgi bandı --- */
+function osdGoster(){
+  const o = document.getElementById("osd");
+  /* Canlı YouTube sonucu çalıyorsa bandı ona göre yaz */
+  if (canliKip && canliParca){
+    document.getElementById("osdNo").textContent = "▶";
+    document.getElementById("osdAd").textContent = canliParca.kanal || "YouTube";
+    document.getElementById("osdParca").textContent =
+      canliParca.baslik + (canliParca.sure ? "  •  " + sureYaz(canliParca.sure) : "") +
+      "  •  canlı arama";
+    o.classList.add("gorunur");
+    clearTimeout(osdZaman);
+    osdZaman = setTimeout(()=>o.classList.remove("gorunur"), 4200);
+    return;
+  }
+  const kanal = VARSAYILAN_KANALLAR[kanalIndex];
+  const parca = kanal.parcalar[parcaIndex];
+  document.getElementById("osdNo").textContent = String(kanalIndex + 1).padStart(2,"0");
+  document.getElementById("osdAd").textContent = kanal.sanatci;
+  document.getElementById("osdParca").textContent =
+    parca.ad + "  •  " + (parcaIndex+1) + "/" + kanal.parcalar.length +
+    "  •  " + sureYaz(parca.sure||0);
+  o.classList.add("gorunur");
+  clearTimeout(osdZaman);
+  osdZaman = setTimeout(()=>o.classList.remove("gorunur"), 4200);
+}
+/* Kanal verisi: 11 sanatçı, her biri 30+ doğrulanmış parça. */
+const VARSAYILAN_KANALLAR = [
+  { sanatci:'Ferdi Tayfur', tur:'Arabesk', parcalar:[
+      { ad:'Huzurum Kalmadı', kimlik:'D2xXMSwBZh4', sure:233 },
+      { ad:'Emmoğlu', kimlik:'RmiVwBpPqdk', sure:349 },
+      { ad:'Bana Sor', kimlik:'SbZfAW8zv_A', sure:333 },
+      { ad:'Batan Güneş', kimlik:'TFxPj-yxR60', sure:231 },
+      { ad:'Mahşer Günü', kimlik:'pCDOpe8Es6g', sure:297 },
+      { ad:'Ağlamazsam Uyuyamam', kimlik:'QUaMF6p5OyY', sure:306 },
+      { ad:'Kalbimin Sahibi Sensin', kimlik:'x4lH5P1vMaQ', sure:173 },
+      { ad:'Sensiz Ne Günlerin Ne Mevsimlerin', kimlik:'sGzvMGW0KZQ', sure:276 },
+      { ad:'Hayat Arkadaşı', kimlik:'faHG7oEEuDo', sure:313 },
+      { ad:'Sevgilim Ağlattı Dostum Ağlattı', kimlik:'MBvwcfDmgXM', sure:266 },
+      { ad:'Zalim Sevgilim', kimlik:'RnOeWCgSsTg', sure:304 },
+      { ad:'Söz Geçmiyor Gönlüme', kimlik:'fA3oZZIyX00', sure:211 },
+      { ad:'Ne Senden Geçerim Ne Meyhaneden', kimlik:'660_aSPXljE', sure:232 },
+      { ad:'Kaderimsin', kimlik:'Jafs8AyAsvs', sure:235 },
+      { ad:'İnsanım İnsan', kimlik:'c32cESfE2Q4', sure:314 },
+      { ad:'Gönlümün Sultanısın', kimlik:'38mWDGbI_zQ', sure:282 },
+      { ad:'Sıra Dağlar', kimlik:'BTMQyB8QSlw', sure:309 },
+      { ad:'Bu Şehrin Geceleri', kimlik:'gNiIUeeVPWA', sure:382 },
+      { ad:'Yaralıyım Dertliyim', kimlik:'QHjxk_RNnBc', sure:357 },
+      { ad:'Şu Başıma Gelene Bak', kimlik:'C_ODMigCKV4', sure:254 },
+      { ad:'Sevmek Günah mı', kimlik:'ftpTysCt6tA', sure:203 },
+      { ad:'Bir Avuç Gözyaşı', kimlik:'1MqefYHzAeA', sure:334 },
+      { ad:'Sen Nerdesin Ben Nerdeyim', kimlik:'IDKCTopfd6M', sure:312 },
+      { ad:'Ben Seni Öyle Sevdim', kimlik:'7uTs9jw_ZU0', sure:288 },
+      { ad:'Baharım Solmadan', kimlik:'Zsv-1k3gkXA', sure:274 },
+      { ad:'Sensiz Yıllar', kimlik:'qiZZ7YsgUkc', sure:214 },
+      { ad:'Dağlar Dağlar', kimlik:'qhqZN3fkmmM', sure:232 },
+      { ad:'Gülüm Benim', kimlik:'8fAU5b2vAsw', sure:233 },
+      { ad:'Nerdesin', kimlik:'LpPOSQl4kSk', sure:228 },
+      { ad:'Kader', kimlik:'r3_lozY9gvo', sure:223 },
+      { ad:'Seni Ben Unutmadım', kimlik:'9psNMvtHhEY', sure:319 },
+      { ad:'Kader Utansın', kimlik:'88rHSSqywEQ', sure:252 }
+  ]},
+  { sanatci:'Müslüm Gürses', tur:'Arabesk', parcalar:[
+      { ad:'Affet', kimlik:'2YYLr6yVruQ', sure:276 },
+      { ad:'Tutamıyorum Zamanı', kimlik:'FLR7Fs4Sw0M', sure:273 },
+      { ad:'İtirazım Var', kimlik:'yIyawhHjzQI', sure:382 },
+      { ad:'Ne Fayda', kimlik:'Pv6-VAHNLjU', sure:259 },
+      { ad:'Kaç Kadeh Kırıldı', kimlik:'lYNMQBKDhwg', sure:269 },
+      { ad:'Seni Sevmeyen Ölsün', kimlik:'QSJxRrKaoqM', sure:289 },
+      { ad:'Gökyüzünde Yalnız Gezen Yıldızlar', kimlik:'l1I6cn25mZU', sure:320 },
+      { ad:'Sensiz Olmaz', kimlik:'l-KmnqbT3ZA', sure:274 },
+      { ad:'İsyanım Var', kimlik:'q3WnOd7NDGU', sure:343 },
+      { ad:'Ben İnsan Değil Miyim', kimlik:'akPNqQWrdl8', sure:218 },
+      { ad:'Garipler', kimlik:'5ndgV4L7aCw', sure:406 },
+      { ad:'Anlatamadım', kimlik:'Z8twleXggmE', sure:282 },
+      { ad:'Yaranamadım', kimlik:'yKpUxkdspk0', sure:303 },
+      { ad:'Sevda Yüklü Kervanlar', kimlik:'rbVRFTsUUCY', sure:294 },
+      { ad:'Dertli Mektup', kimlik:'MJkBX1Mheu8', sure:230 },
+      { ad:'Zalim', kimlik:'c5n1bYDC9Ac', sure:266 },
+      { ad:'Paramparça', kimlik:'IWpBzKPjtc0', sure:218 },
+      { ad:'Hangimiz Sevmedik', kimlik:'dJGTK0C7S8w', sure:235 },
+      { ad:'Gülüm Gülüm', kimlik:'erXKyIN0wTY', sure:323 },
+      { ad:'Çekemez Oldum', kimlik:'6_QRwTAcdaE', sure:283 },
+      { ad:'Yaz Dolsun', kimlik:'ba-gVZLJIRg', sure:277 },
+      { ad:'Seni Ben Ellerin Olsun Diye mi Sevdim', kimlik:'BamCjb537zo', sure:207 },
+      { ad:'Uzun İnce Bir Yoldayım', kimlik:'7bVeENO9cdA', sure:213 },
+      { ad:'Sarhoş Gibiyim', kimlik:'TqwIKT-_L_4', sure:283 },
+      { ad:'Nilüfer', kimlik:'SQnglFtGjqs', sure:259 },
+      { ad:'Seni Yazdım', kimlik:'wtOHNhG0EZc', sure:275 },
+      { ad:'Acı Yıllar', kimlik:'YhJNPh-A2b4', sure:252 },
+      { ad:'Acılı Sevda', kimlik:'RrAd_B8GxuU', sure:323 },
+      { ad:'Acımıyorsan', kimlik:'1YSNVmJAUPQ', sure:280 },
+      { ad:'Şarkılar Senin İçin', kimlik:'vQ5_-ymp4ug', sure:387 },
+      { ad:'Ayrılık Acı Bir Şey', kimlik:'cITUab_6sVs', sure:274 },
+      { ad:'Gel Bahtımın Kar Beyazı', kimlik:'R0VoEzgDc_A', sure:293 },
+      { ad:'Sabır', kimlik:'DJgTRx-yITY', sure:289 },
+      { ad:'Aşk Bu Değil', kimlik:'Myt8nkYiV90', sure:232 },
+      { ad:'Tesadüf', kimlik:'Vd9vRrkJHd0', sure:251 }
+  ]},
+  { sanatci:'İbrahim Tatlıses', tur:'Arabesk / Halk Müziği', parcalar:[
+      { ad:'Mavi Mavi', kimlik:'nWIIS7vgT-E', sure:214 },
+      { ad:'Yalan', kimlik:'SFwMtAllm7o', sure:264 },
+      { ad:'Haydi Söyle', kimlik:'sdfO2W2R1gw', sure:259 },
+      { ad:'Bebeğim', kimlik:'auGuKPkg-NE', sure:275 },
+      { ad:'Selam Olsun', kimlik:'mP2WQ6X9Bv8', sure:250 },
+      { ad:'Ayağında Kundura', kimlik:'1YXOH8OokKA', sure:129 },
+      { ad:'Gülüm Benim', kimlik:'pyc-JOP0u1w', sure:250 },
+      { ad:'Yetmez mi', kimlik:'Liy9Gkq_NkU', sure:263 },
+      { ad:'Rakkas', kimlik:'zrfj_hAZWrI', sure:206 },
+      { ad:'Kara Zindan', kimlik:'Qhjqep_Ecc8', sure:286 },
+      { ad:'Allahım Neydi Günahım', kimlik:'_nwJhnSWR4Q', sure:260 },
+      { ad:'Mega Aşk', kimlik:'iOhwC2EyWXs', sure:198 },
+      { ad:'Aramam', kimlik:'VNZuTrvXfPE', sure:296 },
+      { ad:'Bir Oda Yaptırdım', kimlik:'fo_K2hO-EkY', sure:217 },
+      { ad:'Ne Faydası Var', kimlik:'xSbRuCkODDA', sure:295 },
+      { ad:'Yorgun', kimlik:'QuI3wzcFjEc', sure:341 },
+      { ad:'İnsanlar', kimlik:'O9VZ7zsR2Ns', sure:197 },
+      { ad:'Leylim Ley', kimlik:'9tKLawPuPbY', sure:294 },
+      { ad:'Vur Gitsin', kimlik:'vjvcxwjI60I', sure:275 },
+      { ad:'Zalım', kimlik:'JqhmMmN2vV0', sure:156 },
+      { ad:'Seni Sana Bırakmam', kimlik:'LlFLkozSPls', sure:259 },
+      { ad:'Gelmezsen Gelme', kimlik:'GLr196uuFRg', sure:235 },
+      { ad:'Senden İnsaf Diler Yarin', kimlik:'MMRTlZ4HYmw', sure:260 },
+      { ad:'Nerdesin', kimlik:'nT4X-kVSezM', sure:187 },
+      { ad:'Ben de İsterem', kimlik:'AijCEcSMS3A', sure:242 },
+      { ad:'Sen Al Canımı', kimlik:'YSy1_lX1Rng', sure:281 },
+      { ad:'Bir Mumdur', kimlik:'5UKhAAe5IyU', sure:227 },
+      { ad:'Sarhoş', kimlik:'E24f54_oxak', sure:279 },
+      { ad:'Dom Dom Kurşunu', kimlik:'sPzP8Mbbcf8', sure:274 },
+      { ad:'Nankör Kedi', kimlik:'_Oy5NcIk4ls', sure:230 },
+      { ad:'Anam Ağlar', kimlik:'UjfCfrRrqds', sure:304 },
+      { ad:'Kara Yazma', kimlik:'47dC3iXsCDE', sure:163 },
+      { ad:'Ada Sahillerinde', kimlik:'DK3X7U1ovRg', sure:265 }
+  ]},
+  { sanatci:'Orhan Gencebay', tur:'Arabesk', parcalar:[
+      { ad:'Batsın Bu Dünya', kimlik:'KWed4k1vSFI', sure:354 },
+      { ad:'Dil Yarası', kimlik:'KGTVU1Y9aoA', sure:289 },
+      { ad:'Bir Teselli Ver', kimlik:'hOuzcpnn_zI', sure:273 },
+      { ad:'Hatasız Kul Olmaz', kimlik:'P9mLUhDnCk4', sure:316 },
+      { ad:'Sev Dedi Gözlerim', kimlik:'5vaDwtGwkhA', sure:300 },
+      { ad:'Dertler Benim Olsun', kimlik:'hdzXnQIE5VM', sure:329 },
+      { ad:'Yarabbim', kimlik:'LElHMQyiK-o', sure:308 },
+      { ad:'Sen Sev Beni', kimlik:'UGHv21ZoTKw', sure:329 },
+      { ad:'Zulüm', kimlik:'JXzM0kiGRag', sure:294 },
+      { ad:'Vazgeç Gönlüm', kimlik:'PV9bM4ZYfjo', sure:251 },
+      { ad:'Kaderin Oyunu', kimlik:'eAaxoSlVeCU', sure:247 },
+      { ad:'Ya Evde Yoksan', kimlik:'VRtEf-JT1fc', sure:278 },
+      { ad:'Aklım Takıldı', kimlik:'Qqh1cyCzlfE', sure:267 },
+      { ad:'Beni Böyle Sev', kimlik:'axZxenMKwYA', sure:316 },
+      { ad:'Bir Görüşte Aşık Oldum', kimlik:'EGuP0_4O1rQ', sure:247 },
+      { ad:'Ben Topraktan Bir Canım', kimlik:'Syg7vbQltB8', sure:391 },
+      { ad:'Sevenler Mesut Olmaz', kimlik:'EzJVZZZFigw', sure:248 },
+      { ad:'Emrin Olur', kimlik:'WaLY-JPZ43w', sure:259 },
+      { ad:'Aşkı Ben Yaratmadım', kimlik:'Ibm6LhiV4wY', sure:301 },
+      { ad:'Çilekes', kimlik:'dWF2AZ4cQ1I', sure:324 },
+      { ad:'Gönül', kimlik:'c3uVeF5RrK0', sure:234 },
+      { ad:'Dilenci', kimlik:'HMo52Et6_s0', sure:311 },
+      { ad:'Dünya Dönüyor', kimlik:'WPAbWMJt4HY', sure:333 },
+      { ad:'Hangi Rüzgar', kimlik:'Eta1pUZhdeM', sure:339 },
+      { ad:'Mevsim Bahar Olunca', kimlik:'k991pbL_dBk', sure:315 },
+      { ad:'Kaderimin Oyunu', kimlik:'3jKNhX4Sv80', sure:242 },
+      { ad:'Bir Araya Gelemeyiz', kimlik:'_fJn6hhRJhI', sure:285 },
+      { ad:'Sende Haklısın', kimlik:'bIpQpcOvQWU', sure:310 },
+      { ad:'İsyankar', kimlik:'4E5zKwedcBs', sure:287 },
+      { ad:'Çile', kimlik:'X3XO62DXfk8', sure:318 },
+      { ad:'Sanma', kimlik:'zf7f3xoFf4g', sure:295 },
+      { ad:'Sonbahar', kimlik:'5lHZd4f0XGk', sure:186 },
+      { ad:'Sen Ne Dersen De', kimlik:'EUM_mkoy96Y', sure:345 }
+  ]},
+  { sanatci:'Zara', tur:'Türk Halk Müziği', parcalar:[
+      { ad:'Bir Gülü Sevdim', kimlik:'1MmvZR9fAIQ', sure:285 },
+      { ad:'Hasretinden Yandı Gönlüm', kimlik:'u31Ob4VSw8E', sure:273 },
+      { ad:'Allı Turnam', kimlik:'1TzqOlq0G-k', sure:317 },
+      { ad:'Ağla Halime', kimlik:'l96J3Vq_w58', sure:272 },
+      { ad:'Gesi Bağları', kimlik:'KBXq_oUnEfA', sure:248 },
+      { ad:'Belli Etmeden', kimlik:'rzcbY8kvnVQ', sure:245 },
+      { ad:'Sen Gel Diyorsun', kimlik:'rmOkQ9NiBFo', sure:141 },
+      { ad:'Zeytinyağlı Yiyemem Aman', kimlik:'4d6__BgrLAs', sure:208 },
+      { ad:'Hatıran Yeter', kimlik:'IybCdgFwL7E', sure:215 },
+      { ad:'Ağlama Gözlerim', kimlik:'90pVWxaRM3g', sure:206 },
+      { ad:'Kalenin Bedenleri', kimlik:'G4cOCL4cvs0', sure:225 },
+      { ad:'İki Keklik', kimlik:'Bv-JNrl2iM8', sure:268 },
+      { ad:'Kül Oldum', kimlik:'ix0akvoQWCQ', sure:260 },
+      { ad:'Ah İstanbul', kimlik:'38DLHqvF76Q', sure:263 },
+      { ad:'Karadır Kaşların', kimlik:'8OZBzO0L-XU', sure:136 },
+      { ad:'Gönül Dağı', kimlik:'TxMWzfEnggU', sure:214 },
+      { ad:'Neredesin Sen', kimlik:'g8dV48362UE', sure:247 },
+      { ad:'Mihriban', kimlik:'9e4hwUWFaNo', sure:296 },
+      { ad:'Kırmızı Gül Demet Demet', kimlik:'XJZAOvkLEII', sure:252 },
+      { ad:'Yüce Dağ Başında', kimlik:'4CoX-LvIlDo', sure:176 },
+      { ad:'Çile Bülbülum Çile', kimlik:'2xeHjE7qmr0', sure:164 },
+      { ad:'Kurtuldum', kimlik:'Hqcbh0JnsjI', sure:347 },
+      { ad:'Sarı Gelin', kimlik:'zd9WbaGCLzc', sure:282 },
+      { ad:'Seni Yazdım Kalbime', kimlik:'OWzUPTXVseM', sure:304 },
+      { ad:'Sağım Yalan Solum Yalan', kimlik:'n4yNa-Mk7Vo', sure:281 },
+      { ad:'Kara Üzüm Habbesi', kimlik:'xiu6T9HyD4g', sure:218 },
+      { ad:'Sarhoş', kimlik:'wwy3m6cry4I', sure:295 },
+      { ad:'Zalim', kimlik:'e0KAiR5YmLc', sure:350 },
+      { ad:'Fikrimin İnce Gülü', kimlik:'rboBWqbnoL0', sure:114 },
+      { ad:'Ay Dost', kimlik:'6h13W-x6a4A', sure:233 },
+      { ad:'Ben Yürürüm Yane Yane', kimlik:'ICZogT57u6s', sure:282 },
+      { ad:'Uzun İnce Bir Yoldayım', kimlik:'eI-K01WOCRE', sure:278 },
+      { ad:'Köprüden Geçti Gelin', kimlik:'HoHSt_SWflo', sure:239 },
+      { ad:'Seher Vakti', kimlik:'clGYOyDi_UA', sure:289 },
+      { ad:'Nem Kaldı', kimlik:'i8sQ0S6q-d0', sure:177 }
+  ]},
+  { sanatci:'Osman Altun', tur:'Deep House / Remix', parcalar:[
+      { ad:'I Can\u2019t Erase You', kimlik:'8sJglw7Z3eI', sure:222 },
+      { ad:'Ameno', kimlik:'H95XOzjOt0w', sure:176 },
+      { ad:'Do You Hear Me', kimlik:'eqy04Az01U0', sure:181 },
+      { ad:'Antepli Gelin', kimlik:'0FWcr5l9RNg', sure:281 },
+      { ad:'Shape Of My Deep Heart', kimlik:'yGRVfIh05bo', sure:200 },
+      { ad:'Flying', kimlik:'7MpDCGHCzO8', sure:191 },
+      { ad:'Are You Gonna Hit My Heart', kimlik:'VQpsxgvGc7o', sure:181 },
+      { ad:'Moment Of Piece', kimlik:'95trVN1wHVE', sure:224 },
+      { ad:'Blue da ba dee', kimlik:'93aDLqfuRgg', sure:209 },
+      { ad:'Lane Moje', kimlik:'O9lBjOFguz0', sure:169 },
+      { ad:'I Dont Mind ft.Sophie', kimlik:'l-Cfg7BgzuY', sure:178 },
+      { ad:'Papaoutai', kimlik:'X_m3EUEsb5A', sure:148 },
+      { ad:'Wicked Game', kimlik:'XmTqYRB0X-c', sure:181 },
+      { ad:'Break My Heart ft. Megan kashat', kimlik:'auby58A_Gt0', sure:237 },
+      { ad:'Ole Ole ft. Mani', kimlik:'tihE6utvFV0', sure:179 },
+      { ad:'Sun Goes Down', kimlik:'x4hZYG6ei0Y', sure:163 },
+      { ad:'Kiss', kimlik:'cBDOmLahd2Q', sure:167 },
+      { ad:'Tell Me Baby', kimlik:'PYoIKXkLFfw', sure:329 },
+      { ad:'Deep Don\u2019t Care About', kimlik:'cFdNNxII60Y', sure:144 },
+      { ad:'Far From You', kimlik:'AhGoQocX9-U', sure:232 },
+      { ad:'Shadows Run Deep', kimlik:'KqW-ExuN3oE', sure:193 },
+      { ad:'Self Control', kimlik:'QiviD0gZosk', sure:228 },
+      { ad:'Deep Criminal', kimlik:'xKBsWFNjxnk', sure:158 },
+      { ad:'x Can Sezgin x Uğur Yıldırım- Çanakkale', kimlik:'XTy7oHzVRJ0', sure:204 },
+      { ad:'Sing \u2019n Dance', kimlik:'5vbhVp5yod0', sure:186 },
+      { ad:'Somebody That I Deep To Know', kimlik:'lg58loCgXdU', sure:200 },
+      { ad:'Enigma Moment Of Peace', kimlik:'QkjoPjG0zro', sure:225 },
+      { ad:'Yeşil Gözlerin', kimlik:'jJq1FQfLYjw', sure:226 },
+      { ad:'The Odyssey Deep House Vers', kimlik:'NKg25hCRrv8', sure:134 },
+      { ad:'Esmerleri Çatlatak Kahramanmaraş Çiftetellisi', kimlik:'NcswfW278n0', sure:240 },
+      { ad:'Kapandı Kapılar', kimlik:'kFM3KhM94hM', sure:148 },
+      { ad:'Come Back To Me ارجع لي', kimlik:'9cmzmGWNj48', sure:193 },
+      { ad:'I Dont Mind feat. Sophie', kimlik:'t0H8M09R6pg', sure:185 },
+      { ad:'My Hand', kimlik:'0urlICKefZE', sure:207 }
+  ]},
+  { sanatci:'Semicenk', tur:'Rap / Arabesk Pop', parcalar:[
+      { ad:'Çıkmaz Bir Sokakta', kimlik:'cLygvXtuklI', sure:163 },
+      { ad:'Sen Kaldın', kimlik:'QPXU_mvj2dg', sure:153 },
+      { ad:'Vur Beni', kimlik:'Dncs42FOBy8', sure:197 },
+      { ad:'Canın Sağ Olsun', kimlik:'KDV_-rXGy7A', sure:187 },
+      { ad:'Gözlerinden Gözlerine', kimlik:'L3LSKvtxvZQ', sure:177 },
+      { ad:'Üzülmedim Ki', kimlik:'cahWIOCm5YM', sure:154 },
+      { ad:'Geçiyor Zaman', kimlik:'2ROyiaxw73c', sure:159 },
+      { ad:'Düşer Aklıma', kimlik:'MJOw24mP4X8', sure:157 },
+      { ad:'Onlar Anlamaz Halden', kimlik:'riwF4OyxKys', sure:174 },
+      { ad:'Unutmak Öyle Kolay Mı Sandın', kimlik:'51Vn6pnLgBc', sure:145 },
+      { ad:'Kalpsiz', kimlik:'VViYxk_SqC4', sure:180 },
+      { ad:'Sende Kalmış', kimlik:'CRxxy29b06M', sure:225 },
+      { ad:'Sebepsiz Ayrılık', kimlik:'M-8V86jSrrY', sure:206 },
+      { ad:'Batık Gemi', kimlik:'TgJVds7f3Vo', sure:261 },
+      { ad:'İlkbaharım Kışa Döndü', kimlik:'D8VEbHqF3DE', sure:215 },
+      { ad:'Sabrettim', kimlik:'pRh9lnihoEc', sure:185 },
+      { ad:'Herkes Gibisin', kimlik:'GfTBpCuu6yI', sure:186 },
+      { ad:'Tek Başıma', kimlik:'Oa-R0LvqTpE', sure:207 },
+      { ad:'Mesafe', kimlik:'h5l8fIvFRP4', sure:232 },
+      { ad:'Kader Sağ Olsun', kimlik:'4cxpuPBHsHw', sure:170 },
+      { ad:'Pişman Değilim', kimlik:'gVfkzZSpmNc', sure:144 },
+      { ad:'Kutupta Yaz Gibi', kimlik:'WyYegiLFsJE', sure:140 },
+      { ad:'Bende Katilime Aşıktım', kimlik:'4VnI0X53a5Y', sure:181 },
+      { ad:'Sevecek Sandım', kimlik:'31eOI1YT_0Y', sure:166 },
+      { ad:'Tek Yürek', kimlik:'BHDwbk6WSJQ', sure:154 },
+      { ad:'Geri Dönemedim', kimlik:'CKThDnCf2C8', sure:140 },
+      { ad:'Eyvah Neye Yarar', kimlik:'fy2cvmKWFlU', sure:186 },
+      { ad:'Küle Dönmüşsün', kimlik:'neFfixTy3Hs', sure:143 },
+      { ad:'Al Sevgilim', kimlik:'rg4zB8vpcU4', sure:193 },
+      { ad:'Tanrım Reva Mı', kimlik:'IlwpuwPpXMo', sure:147 },
+      { ad:'Sahte Sonbahar', kimlik:'nt8nWY8MdR8', sure:178 },
+      { ad:'Masal Gibi', kimlik:'MRkra0nVkYk', sure:164 },
+      { ad:'Fark Ettim', kimlik:'lwnmaEEqESY', sure:182 },
+      { ad:'Kalbim Yaralı Live At Harbiye', kimlik:'qBEuWAKmGBE', sure:244 }
+  ]},
+  { sanatci:'Uzi', tur:'Rap / Trap', parcalar:[
+      { ad:'Caney', kimlik:'XwKbcK2gT1M', sure:163 },
+      { ad:'Chouchou', kimlik:'RisOpZhqERU', sure:175 },
+      { ad:'Arasan Da', kimlik:'ZYYKHXqGgZg', sure:192 },
+      { ad:'Flacko X S2b X Shiesty Feat Sanxho', kimlik:'I3lcpGB0Jlk', sure:192 },
+      { ad:'Parti Patlar Gng\u2019den', kimlik:'jaGuAUXtWTY', sure:126 },
+      { ad:'Paparazzi', kimlik:'zrcOsxFxqG0', sure:164 },
+      { ad:'Anakonda\u2019s', kimlik:'LiJ7is-RtA4', sure:168 },
+      { ad:'Yalan Dünya', kimlik:'DfQ-clssvPk', sure:131 },
+      { ad:'MA CHÉRIE feat. AKSAN', kimlik:'t6PWJhK4m3k', sure:156 },
+      { ad:'Yaşıyoken Anla', kimlik:'5u1_Jp1LCnQ', sure:198 },
+      { ad:'Outro İi', kimlik:'6QcPrj5L9hQ', sure:151 },
+      { ad:'1 Yil', kimlik:'7F8ew3WyUeA', sure:172 },
+      { ad:'Şarkılar Sokaklara Ait', kimlik:'CNXGQ0eKphM', sure:181 },
+      { ad:'Xxl', kimlik:'FRYmu6WFEvs', sure:128 },
+      { ad:'Retour aux Pyramides', kimlik:'eJmbC9b-5nA', sure:241 },
+      { ad:'Neon', kimlik:'LLwsjTk7Y9M', sure:177 },
+      { ad:'International', kimlik:'xBJHMzFcAsI', sure:165 },
+      { ad:'Back İn Business', kimlik:'iCbW4FwBwC4', sure:188 },
+      { ad:'Zor', kimlik:'hZjizC3QFBA', sure:172 },
+      { ad:'Umrumda Değil', kimlik:'zXcQL-WAwco', sure:193 },
+      { ad:'Timsahlar', kimlik:'vG_Z1JDkTd8', sure:166 },
+      { ad:'Sil Baştan', kimlik:'gHUergfuhfI', sure:186 },
+      { ad:'Panik Atak', kimlik:'jXmv0Zm63nA', sure:148 },
+      { ad:'Wag1', kimlik:'UEeT-FK0PBQ', sure:127 },
+      { ad:'Say', kimlik:'2AmFX20dz-s', sure:145 },
+      { ad:'Cennet', kimlik:'Y4GIEiWDNiI', sure:156 },
+      { ad:'What You Saying', kimlik:'jSpazjVFm6k', sure:132 },
+      { ad:'Para', kimlik:'G4dv7uK-No4', sure:171 },
+      { ad:'Mini', kimlik:'skOU4-OFQ2Y', sure:103 },
+      { ad:'Konsey', kimlik:'2huwnqx5ccw', sure:133 },
+      { ad:'Kirmizi Steam', kimlik:'2eyWmBNjc48', sure:132 },
+      { ad:'Hisler Gerçek, Gülüşler Sahte', kimlik:'WpqR6YlSv3w', sure:271 },
+      { ad:'Trap House', kimlik:'FPazH_Oxnb4', sure:231 },
+      { ad:'Şut', kimlik:'2wNpdBBaWlg', sure:185 }
+  ]},
+  { sanatci:'Mustafa Açıkses', tur:'Arabesk / Anadolu', parcalar:[
+      { ad:'Çaresizim Çaresiz', kimlik:'YGGngJ6Tt7c', sure:279 },
+      { ad:'Antepliye yazık etme', kimlik:'egtsbaDfp2c', sure:330 },
+      { ad:'Şimdimi Geldim Aklına', kimlik:'BqJktIpw8sk', sure:335 },
+      { ad:'Kime Ne', kimlik:'aRF_gl90QQo', sure:231 },
+      { ad:'Yar Bulamadım', kimlik:'EELc10_AlDA', sure:311 },
+      { ad:'Ne Zaman', kimlik:'V-8iuK20wX0', sure:269 },
+      { ad:'Antepten Öte', kimlik:'BykAm-oDjbI', sure:296 },
+      { ad:'Beni mi Buldu', kimlik:'dApDcRCf4vc', sure:307 },
+      { ad:'Anam Mi Var', kimlik:'O4k6xuW31HI', sure:359 },
+      { ad:'Senden Vazgeçtim', kimlik:'6wHEZ0sSO6Q', sure:302 },
+      { ad:'Yazıyorum Seni', kimlik:'UZqvqh3512Y', sure:262 },
+      { ad:'İllede Ciğer Tavası', kimlik:'2HTWGcsyA1k', sure:287 },
+      { ad:'Eyvah Bu Halime', kimlik:'bo9ycmMBisA', sure:266 },
+      { ad:'Haylo Gelin', kimlik:'Fz-EdZ2JAjw', sure:262 },
+      { ad:'Yalan imiş', kimlik:'MfY8uJafKmE', sure:302 },
+      { ad:'Sevdamisin Belamisin', kimlik:'8VBqAaem-Kk', sure:267 },
+      { ad:'Evin Ocağın Yıkıla', kimlik:'UMh-l8peRrc', sure:274 },
+      { ad:'Hayat Sokaklari', kimlik:'ESxkatJQudk', sure:404 },
+      { ad:'Antepli Gelin', kimlik:'Nw254GmMXdM', sure:251 },
+      { ad:'Tükendi Nakdi Ömrüm', kimlik:'vGWOlG5aPsc', sure:355 },
+      { ad:'Nazli Yarim Gelin Olmuş', kimlik:'k0pQfm2ZCBM', sure:291 },
+      { ad:'Sen Gittinya Olur Olur', kimlik:'RPDm0cyGPVY', sure:242 },
+      { ad:'O Yar Utansin', kimlik:'bqCmt1UyfCs', sure:205 },
+      { ad:'İstiyorsun Ki Yar', kimlik:'iZEWA2p5geI', sure:331 },
+      { ad:'Yere Batasi Dünyada Yar Bulamadim', kimlik:'7d0kRPWFZcc', sure:343 },
+      { ad:'Gelemem', kimlik:'ySZD9I3xCRE', sure:322 },
+      { ad:'Lazım Değilsin', kimlik:'Lgz8txmaalM', sure:287 },
+      { ad:'Harrana Gel', kimlik:'Paysi2D8E_E', sure:216 },
+      { ad:'Tek Başımayım', kimlik:'0p1XznBNtGI', sure:251 },
+      { ad:'ibrahim Dizlek feat', kimlik:'PW_CoPezqdQ', sure:253 },
+      { ad:'Sevinme Firat', kimlik:'imPI7yhPt-s', sure:346 },
+      { ad:'Ah Bu Ayrilik', kimlik:'GYkipzAHz38', sure:303 },
+      { ad:'Sen Olmayinca', kimlik:'xa9v7R5Bch8', sure:264 },
+      { ad:'Kara Yazim', kimlik:'FLTfNp55ChQ', sure:253 }
+  ]},
+  { sanatci:'Azer Bülbül Remix', tur:'Arabesk Trap Remix', parcalar:[
+      { ad:'Alıram Yar Remix', kimlik:'JIscoZzQ4Mo', sure:175 },
+      { ad:'Kurşun Yedim Rexla', kimlik:'zCZkrqhTMG0', sure:275 },
+      { ad:'İyi Değilim Trap Remix Lost', kimlik:'5ZRE5XnldfA', sure:294 },
+      { ad:'Çoğu Gitti Azı Kaldı Burhan Yamaç Remix', kimlik:'j7VFiSdtaQ8', sure:184 },
+      { ad:'Hele Bana Bak Bir Başka Yar Sevme', kimlik:'PG-sJ9y_x4g', sure:231 },
+      { ad:'Ama Yine Sen Dön Bir Bak Remix', kimlik:'hiYbZ_tyEfQ', sure:398 },
+      { ad:'Canım Yanıyor Arabesk Trap Remix', kimlik:'yYrOnmyiR6I', sure:369 },
+      { ad:'Gücüm Yetene Kadar', kimlik:'UKkOlcOGEzE', sure:147 },
+      { ad:'Keriman X Theodore Felix Remix', kimlik:'CldbKt-tWJk', sure:197 },
+      { ad:'WHAT WHAT ben seninle mutluyum Remix', kimlik:'xQU2AQKOnOM', sure:138 },
+      { ad:'Bir Güzele Gönül Verdim Emre Kaşık Remix', kimlik:'crdtIMHeFVQ', sure:200 },
+      { ad:'Canın Sağolsun', kimlik:'koYYpnSSgFM', sure:194 },
+      { ad:'Dünyam Dönüyor Tersine Trap Remix', kimlik:'FOfRD8c18BY', sure:153 },
+      { ad:'Yatamıyorum Remix', kimlik:'gg8VAr-XgV0', sure:138 },
+      { ad:'İllede Sen Müslüm Özbay Remix', kimlik:'XcWjwXJz1JA', sure:152 },
+      { ad:'İyi Değilim MİX', kimlik:'vPj8svT_Cwg', sure:278 },
+      { ad:'Nenni Bebek REMİX', kimlik:'rUIJZafAEMA', sure:191 },
+      { ad:'Ben Seninle Mutluyum Remix', kimlik:'XdDA-Td3dts', sure:206 },
+      { ad:'Üzülmedim Ki DJ Valar Remix', kimlik:'gsyEX-GmtwA', sure:212 },
+      { ad:'Ben Seninle Mutluyum Remix Daha Basslı', kimlik:'xQ5jO7tJlWU', sure:205 },
+      { ad:'Canım Yanıyor Remix', kimlik:'8XZD_qUe8aE', sure:145 },
+      { ad:'Sevmiştim Sevdanın Çok Ötesinde Remix', kimlik:'ueKaOnZb2Gk', sure:249 },
+      { ad:'Alıram Yar Alıram Samet Ervas Remix', kimlik:'AxSFRKDsMnU', sure:171 },
+      { ad:'Üzülmedim ki Remix', kimlik:'7LTQSrD3hH4', sure:329 },
+      { ad:'Yar Sevme Samet Ervas Remix', kimlik:'QLpmr-aURes', sure:180 },
+      { ad:'Bir Ayrılık Şarkısı Seç Remix', kimlik:'d7eKNxTqNqI', sure:388 },
+      { ad:'Aman Güzel Yavaş Yürü Mix', kimlik:'6KNq0t6ymWI', sure:149 },
+      { ad:'Hele Bana Bak Bir Başka Yar Sevme Remix', kimlik:'B7C0GgBpAzA', sure:231 },
+      { ad:'Ama Yine Sen Adem & Furkan Remix', kimlik:'4YDInbA9ozg', sure:157 },
+      { ad:'Azer Bass Music Remix Halodayı feat', kimlik:'mUP6ubmUeqs', sure:150 },
+      { ad:'Bilsen Şimdi Nerdeyim Remix', kimlik:'uq1IdWq-JaU', sure:148 },
+      { ad:'Ama Yine Sen Dön Bir Bak Müslüm Özbay Remix', kimlik:'CPNx_OZVia0', sure:127 },
+      { ad:'Taladro Kurşun Yedim Mix', kimlik:'CkAmaAbJtd8', sure:178 },
+      { ad:'Canım Yanıyor Remix damar', kimlik:'wn_G6qqgk8Q', sure:239 }
+  ]},
+  { sanatci:'Fatih Bulut', tur:'Roman Havası / Fantezi', parcalar:[
+      { ad:'Çok Sevdim Yalan Oldu', kimlik:'UEbSQiYFRBM', sure:241 },
+      { ad:'Keletirya', kimlik:'Ra8-A570LQI', sure:228 },
+      { ad:'Kurban Olduğum', kimlik:'MfVImTgX2iA', sure:201 },
+      { ad:'Benim Aşkım XXL', kimlik:'4E52_a284c0', sure:315 },
+      { ad:'Gör Bak', kimlik:'0ifEkZB6J40', sure:220 },
+      { ad:'Rappo', kimlik:'HfPIauo7zWc', sure:239 },
+      { ad:'İçmeden Oy Oy', kimlik:'u3G-j1qjqQE', sure:209 },
+      { ad:'Keriman', kimlik:'3_cKwDs9FPY', sure:193 },
+      { ad:'Cıngırdak', kimlik:'El07dkONRRY', sure:208 },
+      { ad:'Who Cares', kimlik:'MrJMAuwnvIw', sure:165 },
+      { ad:'Çak O Zaman', kimlik:'AKTSOArmft4', sure:158 },
+      { ad:'Üzümlü Kekim', kimlik:'0gTfPXwdpgk', sure:176 },
+      { ad:'Hayat Beni Vura Vura', kimlik:'OOUErU0mdeU', sure:239 },
+      { ad:'Cıngırdak Rap Versiyon', kimlik:'0JcyFhNtwsk', sure:236 },
+      { ad:'Vay Aklıma', kimlik:'tXUqqHi1Vj4', sure:138 },
+      { ad:'15 Kişiye Saldırdım', kimlik:'CFKOn-qxlSQ', sure:223 },
+      { ad:'Zoruma Geldi & Açma Pencereyi Ben Sana Yandım', kimlik:'cW7XSr0e7fg', sure:174 },
+      { ad:'Yırtıl', kimlik:'VXo-0yX2fcs', sure:134 },
+      { ad:'Roman Mashup 2', kimlik:'X3oAffyeVfs', sure:208 },
+      { ad:'Ağlama Ne Olur', kimlik:'h2tTiznRlmU', sure:301 },
+      { ad:'Keletirya Özel Roman Havasi', kimlik:'sSGHT_erAOE', sure:229 },
+      { ad:'Kelebeğim', kimlik:'6tikKReJFos', sure:154 },
+      { ad:'Esrarlı Gözler', kimlik:'-xueK_0kYoQ', sure:277 },
+      { ad:'Bedelini Öde', kimlik:'5w120jBVFCo', sure:330 },
+      { ad:'Sensiz Yaşıyorum Sanma', kimlik:'8TByz0im9Cs', sure:238 },
+      { ad:'sen benim dünyam', kimlik:'qM1n0ms4JNo', sure:105 },
+      { ad:'Eliminen Dayı Eliminen', kimlik:'B40El0AE9mw', sure:133 },
+      { ad:'Sultan Süleyman', kimlik:'ngPA4N6mDr0', sure:235 },
+      { ad:'Arada Bir', kimlik:'PrXyRiktPmg', sure:232 },
+      { ad:'Antep\u2019ten Ötedir Maraş\u2019In Yolu', kimlik:'KDYXReIjuNc', sure:250 },
+      { ad:'Geliyo Geliyo', kimlik:'spa_fPo0f0Q', sure:138 },
+      { ad:'Roman Mashup 1', kimlik:'tcH6k49DyKQ', sure:253 },
+      { ad:'Tadından Yenmez', kimlik:'U0wtB21SRTE', sure:166 },
+      { ad:'nerden bileydim vefasız olduğunu', kimlik:'dqE5d1-0Rmg', sure:349 }
+  ]},
+];
+/* --- Oynatıcıyu kur: sunucu kipinde IFrame API, dosya kipinde düz iframe --- */
+function oynaticiKur(){
+  const parca = VARSAYILAN_KANALLAR[kanalIndex].parcalar[parcaIndex];
+  if (sunucuKipi){
+    /* YouTube IFrame API betigini bir kez yükle */
+    const bt = document.createElement("script");
+    bt.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(bt);
+  } else {
+    /* file:// kipinde API kullanılamaz; klasik gömülü oynatıcı */
+    iframeYenile(parca.kimlik);
+    /* YouTube, dosyadan açılan sayfalara (null köken) gömülmeyi engelleyebilir. */
+    document.getElementById("dosyaUyari").style.display = "block";
+  }
+}
+
+/* API hazır olduğunda YouTube bu fonksiyonu kendi çağırır. */
+window.onYouTubeIframeAPIReady = function(){
+  apiHazir = true;
+  const parca = VARSAYILAN_KANALLAR[kanalIndex].parcalar[parcaIndex];
+  oynatici = new YT.Player("oynaticiYuva", {
+    videoId: parca.kimlik,
+    playerVars:{ autoplay:1, rel:0, modestbranding:1, playsinline:1, iv_load_policy:3 },
+    events:{
+      onReady: e=>{ e.target.setVolume(sesSeviye); e.target.playVideo(); osdGoster(); },
+      /* Parça bitince sıradakine geç */
+      onStateChange: e=>{
+        if (e.data === YT.PlayerState.ENDED) parcaDegistir(1);
+        if (e.data === YT.PlayerState.PLAYING){ oynuyor = true; dugmeGuncelle(); }
+        if (e.data === YT.PlayerState.PAUSED){ oynuyor = false; dugmeGuncelle(); }
+      },
+      /* Bir video beklenmedik şekilde oynamazsa otomatik atla */
+      onError: ()=>{ bildir("Bu parça açılmadı, sıradakine geçiliyor"); parcaDegistir(1); }
+    }
+  });
+};
+
+/* Dosya kipinde iframe kaynağını tazeler. */
+function iframeYenile(kimlik){
+  const yuva = document.getElementById("oynaticiYuva");
+  const cerceve = document.createElement("iframe");
+  cerceve.allow = "autoplay; encrypted-media; picture-in-picture";
+  cerceve.allowFullscreen = true;
+  cerceve.src = "https://www.youtube.com/embed/" + kimlik +
+    "?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3";
+  yuva.innerHTML = "";
+  yuva.appendChild(cerceve);
+}
+
+/* --- Seçili parçayı yükle ve oynat --- */
+function parcayiYukle(){
+  canliKip = false;          // yerleşik kanala dönüldü
+  canliParca = null;
+  const parca = VARSAYILAN_KANALLAR[kanalIndex].parcalar[parcaIndex];
+  if (sunucuKipi && oynatici && oynatici.loadVideoById){
+    oynatici.loadVideoById(parca.kimlik);
+  } else if (!sunucuKipi){
+    iframeYenile(parca.kimlik);
+  }
+  oynuyor = true;
+  dugmeGuncelle();
+  /* Uyarı şeridindeki YouTube bağlantısını güncel parçaya yönlendir */
+  const bag = document.getElementById("ytBaglanti");
+  if (bag) bag.href = "https://www.youtube.com/watch?v=" + parca.kimlik;
+  parcalariCiz();
+  kanallariCiz();
+  osdGoster();
+  rehberiCiz();
+  /* Arama sonuç listesi açıksa çalan parçayı orada da işaretle */
+  if (aramaAcik) sonucIsaretle();
+}
+
+/* --- Kanal / parça seçimi --- */
+function kanalSec(i, p){
+  const yeni = (i + VARSAYILAN_KANALLAR.length) % VARSAYILAN_KANALLAR.length;
+  if (yeni !== kanalIndex) oncekiKanal = kanalIndex;   // GERİ tuşu için sakla
+  kanalIndex = yeni;
+  const uzunluk = VARSAYILAN_KANALLAR[kanalIndex].parcalar.length;
+  parcaIndex = karisik ? Math.floor(Math.random()*uzunluk) : ((p||0) % uzunluk);
+  parcayiYukle();
+  bildir("Kanal " + String(kanalIndex+1).padStart(2,"0") + " — " +
+         VARSAYILAN_KANALLAR[kanalIndex].sanatci);
+}
+function kanalDegistir(yon){ kanalSec(kanalIndex + yon, 0); }
+
+/* Kanal numarasıyla geçiş: 1 … kanal sayısı (11) arası değerleri kabul eder. */
+function kanalNoGir(no){
+  if (no >= 1 && no <= VARSAYILAN_KANALLAR.length){ kanalSec(no-1, 0); return true; }
+  bildir("Geçersiz kanal: " + no);
+  return false;
+}
+
+/* Kumandada rakam tuşu: iki haneli girişi 1,2 saniye bekler.
+   Örnek: "1" sonra "1" → 11. kanal; tek "7" → 7. kanal. */
+function rakamBas(rakam){
+  rakamTampon += String(rakam);
+  const sayi = parseInt(rakamTampon, 10);
+  const enBuyuk = VARSAYILAN_KANALLAR.length;
+  bildir("Kanal: " + rakamTampon + "_");
+  girisRozetiYaz(rakamTampon);
+  clearTimeout(rakamZaman);
+
+  /* İki hane doldu ya da daha fazla hane anlamsız: hemen uygula */
+  const dahaHaneMumkun = rakamTampon.length < String(enBuyuk).length &&
+                         sayi * 10 <= enBuyuk;
+  if (!dahaHaneMumkun){
+    uygulaRakam();
+  } else {
+    rakamZaman = setTimeout(uygulaRakam, 1200);
+  }
+}
+function uygulaRakam(){
+  clearTimeout(rakamZaman);
+  const sayi = parseInt(rakamTampon, 10);
+  rakamTampon = "";
+  girisRozetiYaz("");
+  if (!isNaN(sayi)) kanalNoGir(sayi);
+}
+
+/* Üst bardaki küçük rozette girilen kanal numarasını gösterir. */
+function girisRozetiYaz(metin){
+  const r = document.getElementById("kanalGiris");
+  if (!r) return;
+  if (metin){ r.textContent = "⌨ " + metin; r.style.display = "inline-block"; }
+  else r.style.display = "none";
+}
+
+/* Son izlenen kanala dön (kumandadaki GERİ tuşu). */
+function onceki(){
+  kanalSec(oncekiKanal, 0);
+}
+function parcaSec(i){
+  parcaIndex = i;
+  parcayiYukle();
+}
+function parcaDegistir(yon){
+  /* Canlı YouTube sonucu çalıyorsa oklar sonuçlar arasında gezinir */
+  if (canliKip && ytSonuclari.length && ytKaydir(yon)) return;
+  const uzunluk = VARSAYILAN_KANALLAR[kanalIndex].parcalar.length;
+  if (karisik && yon > 0){
+    let y; do { y = Math.floor(Math.random()*uzunluk); } while (uzunluk>1 && y===parcaIndex);
+    parcaIndex = y;
+  } else {
+    parcaIndex = (parcaIndex + yon + uzunluk) % uzunluk;
+  }
+  parcayiYukle();
+}
+/* --- Oynat / duraklat --- */
+function oynatDurdur(){
+  if (sunucuKipi && oynatici && oynatici.getPlayerState){
+    if (oynuyor) oynatici.pauseVideo(); else oynatici.playVideo();
+    oynuyor = !oynuyor;
+  } else {
+    /* Dosya kipinde API yok: iframe’i yeniden yükleyerek başa alırız */
+    const kimlik = (canliKip && canliParca)
+      ? canliParca.kimlik
+      : VARSAYILAN_KANALLAR[kanalIndex].parcalar[parcaIndex].kimlik;
+    if (oynuyor){ document.getElementById("oynaticiYuva").innerHTML = ""; oynuyor = false; }
+    else { iframeYenile(kimlik); oynuyor = true; }
+  }
+  dugmeGuncelle();
+}
+function dugmeGuncelle(){
+  document.getElementById("oynatDugme").textContent = oynuyor ? "⏸ Duraklat" : "▶ Oynat";
+}
+
+/* --- Ses --- */
+function sesUygula(){
+  document.getElementById("sesKaydirac").value = sessiz ? 0 : sesSeviye;
+  document.getElementById("sesYazi").textContent = sessiz ? "0" : sesSeviye;
+  document.getElementById("sesTus").textContent = sessiz ? "🔇" : "🔊";
+  if (sunucuKipi && oynatici && oynatici.setVolume){
+    oynatici.setVolume(sessiz ? 0 : sesSeviye);
+    if (sessiz) oynatici.mute(); else oynatici.unMute();
+  }
+}
+function sesAyar(fark){
+  sessiz = false;
+  sesSeviye = Math.min(100, Math.max(0, sesSeviye + fark));
+  sesUygula();
+  bildir("Ses: " + sesSeviye);
+}
+function sesKapaAc(){
+  sessiz = !sessiz;
+  sesUygula();
+  bildir(sessiz ? "Ses kapalı" : "Ses açık");
+}
+
+/* --- Karışık çalma --- */
+function karisikDegis(){
+  karisik = !karisik;
+  document.getElementById("karisikDugme").textContent =
+    "🔀 Karışık: " + (karisik ? "Açık" : "Kapalı");
+  bildir(karisik ? "Karışık çalma açıldı" : "Karışık çalma kapandı");
+}
+
+/* --- EPG rehberi: her kanal için şimdi / sıradaki / sonra --- */
+function rehberiCiz(){
+  const govde = document.getElementById("rehberGovde");
+  govde.innerHTML = "";
+  const simdi = new Date();
+  VARSAYILAN_KANALLAR.forEach((k,i)=>{
+    const n = k.parcalar.length;
+    /* Geçerli kanal için gerçek sıra, diğerleri için saate göre sanal sıra */
+    const bas = (i === kanalIndex)
+      ? parcaIndex
+      : (simdi.getHours()*12 + Math.floor(simdi.getMinutes()/5) + i*7) % n;
+    const tr = document.createElement("tr");
+    tr.onclick = ()=>{ kanalSec(i, bas); rehberKapat(); };
+    const hucreler = [
+      String(i+1).padStart(2,"0"),
+      k.sanatci,
+      k.parcalar[bas].ad,
+      k.parcalar[(bas+1)%n].ad,
+      k.parcalar[(bas+2)%n].ad,
+      (bas+1) + " / " + n
+    ];
+    hucreler.forEach((metin,j)=>{
+      const td = document.createElement("td");
+      td.textContent = metin;
+      if (j === 2) td.className = "simdi";           /* Şimdi çalan sütunu */
+      if (j === 1 && i === kanalIndex) td.textContent = "▶ " + metin;
+      tr.appendChild(td);
+    });
+    if (i === kanalIndex) tr.className = "aktifSatir";
+    govde.appendChild(tr);
+  });
+  document.getElementById("rehberSaat").textContent =
+    simdi.toLocaleTimeString("tr-TR") + " itibarıyla";
+}
+/* Rehberi aç/kapa — açılırken tablo yenilenir. */
+function rehberAcKapa(){
+  const o = document.getElementById("rehberOrtu");
+  o.classList.toggle("acik");
+  if (o.classList.contains("acik")) rehberiCiz();
+}
+function rehberKapat(){
+  document.getElementById("rehberOrtu").classList.remove("acik");
+}
+function kumandaAcKapa(){
+  document.getElementById("kumandaOrtu").classList.toggle("acik");
+}
+function kumandaKapat(){
+  document.getElementById("kumandaOrtu").classList.remove("acik");
+}
+
+/* =====================================================================
+   ARAMA PANELİ — iki kip
+   1) "yt"    : canlı YouTube araması (listede olmayan her şarkıyı bulur)
+   2) "arsiv" : sayfaya gömülü 11 kanal / 372 parça içinde arama
+   ===================================================================== */
+
+let aramaKipi = "yt";      // açılışta canlı YouTube araması seçili
+let aramaSonuclari = [];   // arşiv sonuçları [{k,p,sanatci,ad,sure}]
+let ytSonuclari = [];      // YouTube sonuçları [{kimlik,baslik,kanal,sure}]
+let ytSira = -1;           // çalmakta olan YouTube sonucunun sırası
+let aramaAcik = false;     // sonuç listesi görünür mü
+
+/* Türkçe harfleri sadeleştirip küçültür; böylece "Sisli" ile "Şişli",
+   "Istanbul" ile "\u0130stanbul" aynı kabul edilir. */
+const TR_HARF = {
+  "\u0130":"i", "\u0131":"i", "I":"i",
+  "\u015e":"s", "\u015f":"s",
+  "\u011e":"g", "\u011f":"g",
+  "\u00dc":"u", "\u00fc":"u",
+  "\u00d6":"o", "\u00f6":"o",
+  "\u00c7":"c", "\u00e7":"c",
+  "\u00c2":"a", "\u00e2":"a", "\u00ce":"i", "\u00ee":"i", "\u00db":"u", "\u00fb":"u",
+  "\u00c9":"e", "\u00e9":"e", "\u00c8":"e", "\u00e8":"e"
+};
+function trKucuk(metin){
+  let s = "";
+  for (const h of String(metin||"")){
+    s += (TR_HARF[h] !== undefined) ? TR_HARF[h] : h.toLowerCase();
+  }
+  return s.replace(/[^a-z0-9\u00e0-\u00ff ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/* --- Kip değiştirme: YOUTUBE / KANALLARIM --- */
+function aramaKipiSec(kip){
+  aramaKipi = kip;
+  document.getElementById("kipYt").classList.toggle("aktif", kip === "yt");
+  document.getElementById("kipArsiv").classList.toggle("aktif", kip === "arsiv");
+  const giris = document.getElementById("aramaGiris");
+  giris.placeholder = (kip === "yt")
+    ? "Sanat\u00e7\u0131 ya da \u015fark\u0131 ad\u0131 yaz\u0131n\u2026"
+    : "Kendi kanallar\u0131mda ara\u2026";
+  aramaBilgiVarsayilan();
+  onerileriCiz();
+  /* Kutuda yazılı bir şey varsa yeni kipte hemen yeniden ara */
+  const kap = document.getElementById("sonucListe");
+  kap.innerHTML = ""; kap.classList.remove("acik"); aramaAcik = false;
+  if (giris.value.trim()) araBul();
+}
+
+/* Kutunun altındaki açıklama yazısını kipe göre yazar. */
+function aramaBilgiVarsayilan(){
+  const b = document.getElementById("aramaBilgi");
+  if (aramaKipi === "yt"){
+    b.innerHTML = "T\u00fcm YouTube\u2019da arama yapar \u2014 listede olmayan sanat\u00e7\u0131 " +
+      "ve \u015fark\u0131lar\u0131 da bulur. Sonuca t\u0131klay\u0131n, hemen \u00e7alar.";
+  } else {
+    b.innerHTML = "Yerle\u015fik 11 kanal i\u00e7inde arar. T\u00fcrk\u00e7e harfler " +
+      "(\u0130, \u0131, \u015f, \u011f, \u00fc, \u00f6, \u00e7) fark etmez.";
+  }
+}
+
+/* --- "Bul" tuşu: seçili kipe göre arama yapar --- */
+function araBul(){
+  const giris = document.getElementById("aramaGiris");
+  const metin = giris.value.trim();
+  if (!metin){
+    aramaTemizle();
+    bildir("L\u00fctfen bir sanat\u00e7\u0131 ya da \u015fark\u0131 ad\u0131 yaz\u0131n");
+    giris.focus();
+    return;
+  }
+  if (aramaKipi === "yt") ytAra(metin);
+  else arsivAra(metin);
+}
+
+/* =====================================================================
+   1) YERLEŞİK ARŞİV ARAMASI
+   ===================================================================== */
+
+/* Bir parçanın arama puanını hesaplar. 0 = eşleşmedi. */
+function aramaPuan(sorgu, sanatciN, adN){
+  let puan = 0;
+  if (sanatciN === sorgu) puan = 1000;
+  else if (sanatciN.startsWith(sorgu)) puan = 900;
+  else if (sanatciN.includes(sorgu)) puan = 800;
+  if (adN === sorgu) puan = Math.max(puan, 700);
+  else if (adN.startsWith(sorgu)) puan = Math.max(puan, 600);
+  else if (adN.includes(sorgu)) puan = Math.max(puan, 500);
+  if (puan) return puan;
+  const kelimeler = sorgu.split(" ").filter(k=>k.length > 1);
+  if (kelimeler.length > 1){
+    const hepsi = sanatciN + " " + adN;
+    if (kelimeler.every(k=>hepsi.includes(k))) return 300;
+  }
+  return 0;
+}
+
+/* Yerleşik kanallar içinde arar. */
+function arsivAra(metin){
+  const sorgu = trKucuk(metin);
+  const bulunan = [];
+  VARSAYILAN_KANALLAR.forEach((kanal, k)=>{
+    const sanatciN = trKucuk(kanal.sanatci);
+    kanal.parcalar.forEach((parca, p)=>{
+      const puan = aramaPuan(sorgu, sanatciN, trKucuk(parca.ad));
+      if (puan){
+        bulunan.push({k:k, p:p, puan:puan, sanatci:kanal.sanatci,
+                      ad:parca.ad, sure:parca.sure||0});
+      }
+    });
+  });
+  bulunan.sort((a,b)=> b.puan - a.puan || a.k - b.k || a.p - b.p);
+  aramaSonuclari = bulunan;
+  sonucCiz(metin);
+}
+
+/* --- Arşiv sonuç listesini ekrana çizer --- */
+function sonucCiz(gosterilenSorgu){
+  const kap = document.getElementById("sonucListe");
+  const bilgi = document.getElementById("aramaBilgi");
+  kap.innerHTML = "";
+  aramaAcik = true;
+  kap.classList.add("acik");
+
+  if (!aramaSonuclari.length){
+    const bos = document.createElement("div");
+    bos.className = "sonucBos";
+    bos.textContent = "\u201c" + gosterilenSorgu + "\u201d kendi kanallar\u0131n\u0131zda yok. " +
+      "\u00dcstteki YOUTUBE sekmesine ge\u00e7erek t\u00fcm YouTube\u2019da arayabilirsiniz.";
+    kap.appendChild(bos);
+    bilgi.textContent = "Sonu\u00e7 yok \u2014 0 par\u00e7a.";
+    bildir("Kendi kanallar\u0131n\u0131zda sonu\u00e7 yok");
+    return;
+  }
+
+  const sorguN = trKucuk(gosterilenSorgu);
+  aramaSonuclari.forEach((s, sira)=>{
+    const d = document.createElement("div");
+    d.className = "sonucOge" +
+      ((!canliKip && s.k === kanalIndex && s.p === parcaIndex) ? " aktif" : "");
+    d.title = s.sanatci + " \u2014 " + s.ad;
+    d.onclick = ()=>sonucCal(s.k, s.p);
+
+    const no = document.createElement("div");
+    no.className = "sonucKanal";
+    no.textContent = String(s.k+1).padStart(2,"0");
+
+    const orta = document.createElement("div");
+    orta.className = "sonucOrta";
+    const ad = document.createElement("div");
+    ad.className = "sonucAd";
+    isaretle(ad, s.ad, sorguN);
+    const alt = document.createElement("div");
+    alt.className = "sonucSanatci";
+    isaretle(alt, s.sanatci, sorguN);
+    orta.appendChild(ad);
+    orta.appendChild(alt);
+
+    const sure = document.createElement("div");
+    sure.className = "sonucSure";
+    sure.textContent = sureYaz(s.sure);
+
+    d.appendChild(no);
+    d.appendChild(orta);
+    d.appendChild(sure);
+    kap.appendChild(d);
+    if (sira === 0) d.scrollIntoView({block:"nearest"});
+  });
+
+  const kanalSayisi = new Set(aramaSonuclari.map(s=>s.k)).size;
+  bilgi.textContent = aramaSonuclari.length + " par\u00e7a bulundu (" +
+    kanalSayisi + " kanal). \u00c7almak i\u00e7in sonuca t\u0131klay\u0131n.";
+  bildir(aramaSonuclari.length + " sonu\u00e7 bulundu");
+}
+
+/* Metni yazar, sorguya uyan bölümü vurgular. Metin daima düz yazı olarak
+   eklenir (HTML yorumlanmaz), b\u00f6ylece g\u00fcvenlidir. */
+function isaretle(hedef, metin, sorguN){
+  hedef.textContent = "";
+  const dN = trKucuk(metin);
+  const yer = sorguN ? dN.indexOf(sorguN) : -1;
+  if (yer < 0 || dN.length !== metin.length){
+    hedef.textContent = metin;
+    return;
+  }
+  hedef.appendChild(document.createTextNode(metin.slice(0, yer)));
+  const vurgu = document.createElement("span");
+  vurgu.className = "eslesme";
+  vurgu.textContent = metin.slice(yer, yer + sorguN.length);
+  hedef.appendChild(vurgu);
+  hedef.appendChild(document.createTextNode(metin.slice(yer + sorguN.length)));
+}
+
+/* --- Arşiv sonucundan parça çal --- */
+function sonucCal(k, p){
+  canliKip = false;
+  if (k !== kanalIndex){
+    oncekiKanal = kanalIndex;
+    kanalIndex = k;
+  }
+  parcaIndex = p;
+  parcayiYukle();
+  const kanal = VARSAYILAN_KANALLAR[k];
+  bildir(kanal.sanatci + " \u2014 " + kanal.parcalar[p].ad);
+  if (aramaAcik) sonucIsaretle();
+}
+
+/* Çalmakta olan parçayı sonuç listesinde işaretler. */
+function sonucIsaretle(){
+  const ogeler = document.getElementById("sonucListe").querySelectorAll(".sonucOge");
+  ogeler.forEach((d, i)=>{
+    const s = aramaSonuclari[i];
+    if (!s) return;
+    d.classList.toggle("aktif", !canliKip && s.k === kanalIndex && s.p === parcaIndex);
+  });
+}
+
+/* =====================================================================
+   2) CANLI YOUTUBE ARAMASI
+   Tarayıcıdan doğrudan açık kaynaklı YouTube ön yüzlerine (Invidious /
+   Piped) istek atılır. Bunlar YouTube arama sonuçlarını JSON olarak
+   verir ve tarayıcıdan çağrılmaya izin verir (CORS açık). Biri
+   cevap vermezse sıradaki denenir.
+   ===================================================================== */
+
+const YT_SUNUCULAR = [
+  {ad:"inv.nadeko.net",   url:s=>"https://inv.nadeko.net/api/v1/search?type=video&q="+s,      tur:"inv"},
+  {ad:"invidious.nerdvpn.de", url:s=>"https://invidious.nerdvpn.de/api/v1/search?type=video&q="+s, tur:"inv"},
+  {ad:"yewtu.be",         url:s=>"https://yewtu.be/api/v1/search?type=video&q="+s,            tur:"inv"},
+  {ad:"iv.ggtyler.dev",   url:s=>"https://iv.ggtyler.dev/api/v1/search?type=video&q="+s,      tur:"inv"},
+  {ad:"pipedapi.kavin.rocks", url:s=>"https://pipedapi.kavin.rocks/search?filter=videos&q="+s, tur:"piped"},
+  {ad:"pipedapi.adminforge.de", url:s=>"https://pipedapi.adminforge.de/search?filter=videos&q="+s, tur:"piped"},
+  {ad:"api.piped.private.coffee", url:s=>"https://api.piped.private.coffee/search?filter=videos&q="+s, tur:"piped"}
+];
+
+let ytIstekNo = 0;   // eski isteklerin geç gelen cevabını yok saymak için
+
+/* Tek bir sunucuya, zaman sınırlı istek atar. */
+function ytIstek(adres, saniye){
+  const kesici = new AbortController();
+  const zaman = setTimeout(()=>kesici.abort(), saniye*1000);
+  return fetch(adres, {signal:kesici.signal, headers:{"Accept":"application/json"}})
+    .then(cevap=>{
+      if (!cevap.ok) throw new Error("HTTP " + cevap.status);
+      return cevap.json();
+    })
+    .finally(()=>clearTimeout(zaman));
+}
+
+/* Invidious / Piped cevaplarını tek bir biçime çevirir. */
+function ytCevapCoz(veri, tur){
+  const liste = Array.isArray(veri) ? veri : (veri && veri.items) || [];
+  const cikti = [];
+  for (const oge of liste){
+    let kimlik = "", baslik = "", kanal = "", sure = 0, kapak = "";
+    if (tur === "inv"){
+      if (oge.type && oge.type !== "video") continue;
+      kimlik = oge.videoId || "";
+      baslik = oge.title || "";
+      kanal  = oge.author || "";
+      sure   = oge.lengthSeconds || 0;
+      kapak  = "https://i.ytimg.com/vi/" + kimlik + "/mqdefault.jpg";
+    } else {
+      const yol = oge.url || "";
+      const bul = /[?&]v=([A-Za-z0-9_-]{11})/.exec(yol);
+      kimlik = bul ? bul[1] : "";
+      baslik = oge.title || "";
+      kanal  = oge.uploaderName || "";
+      sure   = oge.duration || 0;
+      kapak  = "https://i.ytimg.com/vi/" + kimlik + "/mqdefault.jpg";
+    }
+    if (!kimlik || kimlik.length !== 11) continue;
+    if (sure > 0 && sure < 30) continue;          // çok kısa klipleri atla
+    cikti.push({kimlik:kimlik, baslik:baslik, kanal:kanal,
+                sure:Number(sure)||0, kapak:kapak});
+    if (cikti.length >= 40) break;
+  }
+  return cikti;
+}
+
+/* --- Canlı arama: sunucuları sırayla dener --- */
+function ytAra(metin){
+  const benimNo = ++ytIstekNo;
+  const kap = document.getElementById("sonucListe");
+  aramaAcik = true;
+  kap.classList.add("acik");
+  kap.innerHTML = '<div class="aramaYukleniyor"><span class="donen"></span>' +
+    'YouTube\u2019da aran\u0131yor\u2026</div>';
+  document.getElementById("aramaBilgi").textContent =
+    "\u201c" + metin + "\u201d i\u00e7in YouTube sonu\u00e7lar\u0131 getiriliyor\u2026";
+  bildir("YouTube\u2019da aran\u0131yor: " + metin);
+
+  const sorgu = encodeURIComponent(metin);
+  let sira = 0;
+
+  function sonrakiniDene(){
+    if (benimNo !== ytIstekNo) return;               // yeni arama başladı
+    if (sira >= YT_SUNUCULAR.length){ ytHata(metin); return; }
+    const sunucu = YT_SUNUCULAR[sira++];
+    ytIstek(sunucu.url(sorgu), 9)
+      .then(veri=>{
+        if (benimNo !== ytIstekNo) return;
+        const sonuc = ytCevapCoz(veri, sunucu.tur);
+        if (!sonuc.length) throw new Error("bo\u015f sonu\u00e7");
+        ytSonuclari = sonuc;
+        ytSira = -1;
+        ytSonucCiz(metin, sunucu.ad);
+      })
+      .catch(()=>sonrakiniDene());
+  }
+  sonrakiniDene();
+}
+
+/* Hiçbir sunucu cevap vermediyse: kullanıcıya doğrudan YouTube bağlantısı ver. */
+function ytHata(metin){
+  const kap = document.getElementById("sonucListe");
+  const bag = "https://www.youtube.com/results?search_query=" + encodeURIComponent(metin);
+  kap.innerHTML = "";
+  const kutu = document.createElement("div");
+  kutu.className = "aramaHata";
+  const b1 = document.createElement("b");
+  b1.textContent = "Canl\u0131 aramaya \u015fu an ula\u015f\u0131lam\u0131yor.";
+  const y1 = document.createElement("div");
+  y1.textContent = "\u0130nternet ba\u011flant\u0131n\u0131z\u0131 ya da a\u011f k\u0131s\u0131tlamalar\u0131n\u0131 " +
+    "kontrol edip yeniden deneyin. Dilerseniz arad\u0131\u011f\u0131n\u0131z\u0131 do\u011frudan " +
+    "YouTube\u2019da a\u00e7abilir ya da KANALLARIM sekmesinden kendi ar\u015fivinizde arayabilirsiniz.";
+  const a = document.createElement("a");
+  a.href = bag; a.target = "_blank"; a.rel = "noopener";
+  a.className = "hataBag";
+  a.textContent = "\u25b6 \u201c" + metin + "\u201d i\u00e7in YouTube\u2019da a\u00e7";
+  kutu.appendChild(b1); kutu.appendChild(y1); kutu.appendChild(a);
+  kap.appendChild(kutu);
+  document.getElementById("aramaBilgi").textContent =
+    "Canl\u0131 arama ba\u015far\u0131s\u0131z \u2014 sonu\u00e7 al\u0131namad\u0131.";
+  bildir("Canl\u0131 aramaya ula\u015f\u0131lam\u0131yor");
+}
+
+/* --- YouTube sonuçlarını ekrana çizer --- */
+function ytSonucCiz(metin, sunucuAdi){
+  const kap = document.getElementById("sonucListe");
+  kap.innerHTML = "";
+  aramaAcik = true;
+  kap.classList.add("acik");
+
+  ytSonuclari.forEach((v, sira)=>{
+    const d = document.createElement("div");
+    d.className = "ytOge" + (sira === ytSira ? " aktif" : "");
+    d.title = v.baslik + (v.kanal ? "  \u2014  " + v.kanal : "");
+    d.onclick = ()=>ytCal(sira);
+
+    const kapak = document.createElement("img");
+    kapak.className = "ytKapak";
+    kapak.src = v.kapak;
+    kapak.alt = "";
+    kapak.loading = "lazy";
+    kapak.referrerPolicy = "no-referrer";
+    /* Kapak yüklenemezse boş bir kutu görünsün, kırık resim çıkmasın */
+    kapak.onerror = function(){ this.style.visibility = "hidden"; };
+
+    const orta = document.createElement("div");
+    orta.className = "ytOrta";
+    const baslik = document.createElement("div");
+    baslik.className = "ytBaslik";
+    baslik.textContent = v.baslik;
+    const kanal = document.createElement("div");
+    kanal.className = "ytKanal";
+    kanal.textContent = v.kanal || "YouTube";
+    orta.appendChild(baslik);
+    orta.appendChild(kanal);
+
+    const sure = document.createElement("div");
+    sure.className = "ytSure";
+    sure.textContent = v.sure ? sureYaz(v.sure) : "\u2022\u2022\u2022";
+
+    d.appendChild(kapak);
+    d.appendChild(orta);
+    d.appendChild(sure);
+    kap.appendChild(d);
+  });
+
+  const bilgi = document.getElementById("aramaBilgi");
+  bilgi.textContent = "";
+  const rozet = document.createElement("span");
+  rozet.className = "ytRozet";
+  rozet.textContent = "CANLI";
+  bilgi.appendChild(rozet);
+  bilgi.appendChild(document.createTextNode(
+    " YouTube\u2019da " + ytSonuclari.length + " sonu\u00e7 \u2014 \u00e7almak i\u00e7in t\u0131klay\u0131n."));
+  bildir("YouTube\u2019da " + ytSonuclari.length + " sonu\u00e7 bulundu");
+}
+
+/* --- Canlı sonucu ekranda çal --- */
+function ytCal(sira){
+  const v = ytSonuclari[sira];
+  if (!v) return;
+  ytSira = sira;
+  canliKip = true;
+  canliParca = {kimlik:v.kimlik, baslik:v.baslik, kanal:v.kanal, sure:v.sure};
+
+  if (sunucuKipi && oynatici && oynatici.loadVideoById){
+    oynatici.loadVideoById(v.kimlik);
+  } else {
+    iframeYenile(v.kimlik);          // dosyadan açıldığında gömülü çerçeve
+  }
+  oynuyor = true;
+  dugmeGuncelle();
+
+  const bag = document.getElementById("ytBaglanti");
+  if (bag) bag.href = "https://www.youtube.com/watch?v=" + v.kimlik;
+
+  /* Yerleşik listelerde artık çalan bir parça yok; işaretleri temizle */
+  parcalariCiz();
+  kanallariCiz();
+  osdGoster();
+  ytIsaretle();
+  bildir("\u00c7al\u0131n\u0131yor: " + v.baslik);
+}
+
+/* Çalan canlı sonucu listede işaretler. */
+function ytIsaretle(){
+  const ogeler = document.getElementById("sonucListe").querySelectorAll(".ytOge");
+  ogeler.forEach((d, i)=>d.classList.toggle("aktif", i === ytSira));
+}
+
+/* Canlı kipte önceki / sonraki sonuca geçiş (kumanda okları da kullanır). */
+function ytKaydir(yon){
+  if (!ytSonuclari.length) return false;
+  const yeni = (ytSira + yon + ytSonuclari.length) % ytSonuclari.length;
+  ytCal(yeni);
+  return true;
+}
+
+/* =====================================================================
+   ARAMA KUTUSU YARDIMCILARI
+   ===================================================================== */
+
+/* Aramayı ve sonuç listesini temizler. */
+function aramaTemizle(){
+  ytIstekNo++;                     // süren istekleri geçersiz kıl
+  const giris = document.getElementById("aramaGiris");
+  giris.value = "";
+  aramaSonuclari = [];
+  ytSonuclari = [];
+  ytSira = -1;
+  aramaAcik = false;
+  const kap = document.getElementById("sonucListe");
+  kap.innerHTML = "";
+  kap.classList.remove("acik");
+  aramaBilgiVarsayilan();
+}
+
+/* Kutunun altındaki hızlı arama etiketleri. Canlı kipte popüler
+   aramalar, arşiv kipinde kendi kanallarınızın adları gösterilir. */
+const CANLI_ONERILER = [
+  "Tarkan", "Sezen Aksu", "Ceza", "Duman", "M\u00fcsl\u00fcm G\u00fcrses",
+  "Zeki M\u00fcren", "Model", "Adele", "Coldplay", "Ezhel"
+];
+function onerileriCiz(){
+  const kap = document.getElementById("aramaOneri");
+  kap.innerHTML = "";
+  const liste = (aramaKipi === "yt")
+    ? CANLI_ONERILER
+    : VARSAYILAN_KANALLAR.map(k=>k.sanatci);
+  liste.forEach(ad=>{
+    const t = document.createElement("button");
+    t.className = "oneriEtiket";
+    t.type = "button";
+    t.textContent = ad;
+    t.onclick = ()=>{
+      document.getElementById("aramaGiris").value = ad;
+      araBul();
+    };
+    kap.appendChild(t);
+  });
+}
+
+/* Arama kutusunun tuş davranışları: Enter ara, Esc temizle. */
+function aramaKutusunuBagla(){
+  const giris = document.getElementById("aramaGiris");
+  giris.addEventListener("keydown", e=>{
+    if (e.key === "Enter"){ e.preventDefault(); araBul(); }
+    else if (e.key === "Escape"){ e.preventDefault(); aramaTemizle(); giris.blur(); }
+    e.stopPropagation();          // kısayolların araya girmesini engelle
+  });
+}
+/* --- Klavye kısayolları --- */
+document.addEventListener("keydown", e=>{
+  if (aktifKip !== "tv") return;
+  if (e.target.tagName === "INPUT") return;
+  switch(e.key){
+    case "ArrowUp":    e.preventDefault(); kanalDegistir(-1); break;
+    case "ArrowDown":  e.preventDefault(); kanalDegistir(1);  break;
+    case "ArrowRight": e.preventDefault(); parcaDegistir(1);  break;
+    case "ArrowLeft":  e.preventDefault(); parcaDegistir(-1); break;
+    case " ":          e.preventDefault(); oynatDurdur();     break;
+    case "+": sesAyar(10); break;
+    case "-": sesAyar(-10); break;
+    case "m": case "M": sesKapaAc(); break;
+    case "g": case "G": rehberAcKapa(); break;
+    case "k": case "K": kumandaAcKapa(); break;
+    case "s": case "S": karisikDegis(); break;
+    /* "/" ya da "a": arama kutusuna odaklan */
+    case "/": case "a": case "A":
+      e.preventDefault();
+      document.getElementById("aramaGiris").focus();
+      document.getElementById("aramaGiris").select();
+      break;
+    case "Enter":      e.preventDefault(); uygulaRakam(); break;
+    case "Backspace":  e.preventDefault(); onceki(); break;
+    case "Escape":
+      rehberKapat();
+      kumandaKapat();
+      aramaTemizle();
+      rakamTampon = "";
+      girisRozetiYaz("");
+      break;
+    default:
+      /* 0-9: iki haneli kanal girişi (11. kanal için "1" + "1") */
+      if (/^[0-9]$/.test(e.key)) rakamBas(parseInt(e.key,10));
+  }
+});
+
+/* --- Ses kaydıracı --- */
+document.getElementById("sesKaydirac").addEventListener("input", e=>{
+  sesSeviye = parseInt(e.target.value,10);
+  sessiz = sesSeviye === 0;
+  sesUygula();
+});
+
+/* --- Duvar saati --- */
+function saatiGuncelle(){
+  document.getElementById("saatKutu").textContent =
+    new Date().toLocaleTimeString("tr-TR");
+}
+setInterval(saatiGuncelle, 1000);
+
+/* --- Başlangıç --- */
+function basla(){
+  const toplam = VARSAYILAN_KANALLAR.reduce((t,k)=>t + k.parcalar.length, 0);
+  document.getElementById("rozetOzet").textContent =
+    VARSAYILAN_KANALLAR.length + " kanal • " + toplam + " parça";
+  kanallariCiz();
+  parcalariCiz();
+  rehberiCiz();
+  onerileriCiz();          /* arama panelindeki hızlı sanatçı etiketleri */
+  aramaKutusunuBagla();    /* Enter ile ara, Esc ile temizle */
+  saatiGuncelle();
+  sesUygula();
+  oynaticiKur();
+  osdGoster();
+}
+basla();
+</script>
+<script>
+'use strict';
+let uiAudioCtx = null;
+function getUiAudioContext() {
+  if (!uiAudioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    uiAudioCtx = new AudioContext();
+  }
+  if (uiAudioCtx.state === 'suspended') uiAudioCtx.resume();
+  return uiAudioCtx;
+}
+
+function playSoundEffect(type) {
+  try {
+    const ctx = getUiAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+      osc.start(now); osc.stop(now + 0.05);
+    } else if (type === 'play') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'stop') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'change') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.06);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+      osc.start(now); osc.stop(now + 0.06);
+    } else if (type === 'vol') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, now);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.start(now); osc.stop(now + 0.03);
+    }
+  } catch(e){}
+}
+
+const DEFAULT_STATIONS=[
+  {id:"kralpop", name:"Kral Pop", sub:"Pop Müzik Hit", freq:"94.70", cat:"Pop", ac:"#ff5fa2", ab:"KP", img:"https://radyotvonline.com/radyo-logolari/kral-pop.png",
+   src:[
+     "https://n10101.radyotvonline.net/kralpop/playlist.m3u8",
+     "https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8",
+     "https://radyo.dogustv.com.tr/kralpop/playlist.m3u8",
+     "http://46.20.3.201/;type=mp3"
+   ]},
+  {id:"kralfm", name:"Kral FM", sub:"Arabesk & Fantezi Müzik", freq:"98.60", cat:"Arabesk", ac:"#ffb02e", ab:"KF", img:"https://radyotvonline.com/radyo-logolari/kral-fm.png",
+   src:[
+     "https://n10101.radyotvonline.net/kralfm/playlist.m3u8",
+     "https://ssldyg.radyotvonline.com/smil/smil:kralfm.smil/playlist.m3u8",
+     "https://radyo.dogustv.com.tr/kralfm/playlist.m3u8",
+     "http://46.20.3.204/;type=mp3"
+   ]},
+  {id:"baba", name:"Baba Radyo", sub:"İstanbul · Arabesk", freq:"105.60", cat:"Arabesk", ac:"#00e5ff", ab:"BR", img:"https://radyotvonline.com/radyo-logolari/baba-radyo.png",
+   src:["https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8","https://37.247.98.7/babaradyomp3"]},
+  {id:"ferdi", name:"Kral Ferdi Tayfur", sub:"7/24 Ferdi Tayfur Şarkıları", freq:"99.90", cat:"Arabesk", ac:"#ffd166", ab:"FT", img:"",
+   src:["http://46.20.3.250/;stream","https://ssl4.radyotvonline.net/radyo7/radyo7_home.stream/playlist.m3u8"]},
+  {id:"efsane4", name:"Efsane 4'lü", sub:"Efsane Arabesk Sanatçıları", freq:"94.40", cat:"Arabesk", ac:"#38bdf8", ab:"E4", img:"",
+   src:["https://moondigitalmaster.radyotvonline.net/efsane4lu/playlist.m3u8"]},
+  {id:"park", name:"Park FM", sub:"Ankara · Arabesk & Yöresel", freq:"96.90", cat:"Arabesk", ac:"#ff3d9a", ab:"PF", img:"https://radyotvonline.com/radyo-logolari/park-fm.png",
+   src:["https://s03.diazol.hu:7142/stream.mp3"]},
+  {id:"powerfm", name:"Power FM", sub:"Yabancı Hit Pop", freq:"100.00", cat:"Pop", ac:"#22c1c3", ab:"PW", img:"https://radyotvonline.com/radyo-logolari/power-fm.png",
+   src:["https://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio"]},
+  {id:"palfm", name:"Pal FM", sub:"Müziğin Türkçesi", freq:"106.60", cat:"Pop", ac:"#ffb703", ab:"PL", img:"https://radyotvonline.com/radyo-logolari/pal-fm.png",
+   src:["https://moondigitalmaster.radyotvonline.net/palfm/playlist.m3u8"]},
+  {id:"turkuvaz", name:"Radyo Turkuvaz", sub:"Türkiye'nin Radyosu", freq:"93.60", cat:"Genel", ac:"#06b6d4", ab:"RT", img:"",
+   src:["https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8"]},
+  {id:"alem", name:"Alem FM", sub:"Türkçe Karışık", freq:"101.10", cat:"Genel", ac:"#ffb703", ab:"AL", img:"https://radyotvonline.com/radyo-logolari/alem-fm.png",
+   src:["https://alemfm.radyotvonline.net/alemfmaac"]},
+  {id:"best", name:"Best FM", sub:"Pop · Hit", freq:"98.40", cat:"Pop", ac:"#a8dadc", ab:"BF", img:"https://radyotvonline.com/radyo-logolari/best-fm.png",
+   src:["https://officialbestfm.radyotvonline.net/bestfmofficial"]}
+];
+
+const $=x=>document.querySelector(x), esc=x=>String(x??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const audio=new Audio(); audio.crossOrigin='anonymous';
+let hls = null;
+let currentStreamIndex = 0;
+let currentStationObj = null;
+
+const safeLS={
+  getItem(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  setItem(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+
+let STATIONS = [];
+try {
+  const savedOrder = JSON.parse(safeLS.getItem('halil_stations_order') || 'null');
+  if(savedOrder && Array.isArray(savedOrder) && savedOrder.length > 0) STATIONS = savedOrder;
+  else STATIONS = [...DEFAULT_STATIONS];
+} catch(e) { STATIONS = [...DEFAULT_STATIONS]; }
+
+function saveCurrentOrder() { safeLS.setItem('halil_stations_order', JSON.stringify(STATIONS)); }
+
+const BARS_NUM = 20;
+const vBar = $('#vBar');
+for(let i=0; i<BARS_NUM; i++) vBar.appendChild(document.createElement('i'));
+
+let audioCtx = null, sourceNode = null, analyser = null;
+let bassFilter = null, midFilter = null, trebleFilter = null;
+let isPlaying = false;
+
+function initAudioEQ() {
+  if (audioCtx) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContext();
+    sourceNode = audioCtx.createMediaElementSource(audio);
+
+    bassFilter = audioCtx.createBiquadFilter();
+    bassFilter.type = "lowshelf";
+    bassFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
+
+    midFilter = audioCtx.createBiquadFilter();
+    midFilter.type = "peaking";
+    midFilter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+    midFilter.Q.setValueAtTime(1, audioCtx.currentTime);
+
+    trebleFilter = audioCtx.createBiquadFilter();
+    trebleFilter.type = "highshelf";
+    trebleFilter.frequency.setValueAtTime(3000, audioCtx.currentTime);
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+
+    sourceNode.connect(bassFilter);
+    bassFilter.connect(midFilter);
+    midFilter.connect(trebleFilter);
+    trebleFilter.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  } catch(e) {}
+}
+
+const dataArray = new Uint8Array(20);
+function animateVisualizer() {
+  requestAnimationFrame(animateVisualizer);
+  const bars = vBar.children;
+  if (!bars.length) return;
+
+  let bassVal = 0;
+  if (isPlaying && analyser) {
+    analyser.getByteFrequencyData(dataArray);
+    bassVal = (dataArray[0] + dataArray[1] + dataArray[2]) / 3;
+  }
+
+  for (let i = 0; i < bars.length; i++) {
+    let percent = 10;
+    if (isPlaying && analyser) {
+      percent = Math.max(10, (dataArray[i] / 255) * 100);
+    } else {
+      percent = 15 + Math.sin(Date.now() / 200 + i) * 10;
+    }
+    bars[i].style.height = percent + '%';
+  }
+
+  const spkLeft = $('#spkLeft');
+  const spkRight = $('#spkRight');
+  if (isPlaying && bassVal > 110) {
+    spkLeft.classList.add('bass-hit');
+    spkRight.classList.add('bass-hit');
+  } else {
+    spkLeft.classList.remove('bass-hit');
+    spkRight.classList.remove('bass-hit');
+  }
+}
+animateVisualizer();
+
+function setEQPreset(preset) {
+  initAudioEQ();
+  if (!bassFilter || !midFilter || !trebleFilter) return;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+  const settings = {
+    flat:   { bass: 0,  mid: 0,  treble: 0 },
+    arabesk:{ bass: 6,  mid: 3,  treble: -1 },
+    pop:    { bass: 4,  mid: 2,  treble: 5 },
+    rock:   { bass: 5,  mid: -1, treble: 4 },
+    bass:   { bass: 9,  mid: 0,  treble: 2 }
+  };
+
+  const s = settings[preset] || settings.flat;
+  bassFilter.gain.setValueAtTime(s.bass, audioCtx.currentTime);
+  midFilter.gain.setValueAtTime(s.mid, audioCtx.currentTime);
+  trebleFilter.gain.setValueAtTime(s.treble, audioCtx.currentTime);
+}
+
+document.querySelectorAll('.eqbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    playSoundEffect('click');
+    document.querySelectorAll('.eqbtn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    setEQPreset(btn.dataset.preset);
+    showToast(`Ses Modu: ${btn.textContent}`);
+  });
+});
+
+let webSearchResults = [];
+let searchDebounce = null;
+let currentIdx = 0;
+
+function showToast(msg) {
+  const t = $('#toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+setInterval(() => {
+  const now = new Date();
+  $('#clock').textContent = now.toTimeString().split(' ')[0].substring(0,5);
+  $('#date').textContent = now.toLocaleDateString('tr-TR');
+}, 1000);
+
+window.addWebStationToMyList = function(stationId) {
+  playSoundEffect('click');
+  const found = webSearchResults.find(s => s.id === stationId);
+  if(!found) return;
+  if(!STATIONS.some(s => s.id === found.id)) {
+    STATIONS.push(found);
+    saveCurrentOrder();
+    showToast(`"${found.name}" eklendi!`);
+    renderList();
+  } else showToast(`Zaten listenizde mevcut.`);
+};
+
+async function searchWebStations(query) {
+  if(!query || query.length < 2) { webSearchResults = []; renderList(); return; }
+  try {
+    const res = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=15`);
+    const data = await res.json();
+    webSearchResults = data.map(item => ({
+      id: 'web_' + (item.stationuuid || Math.random().toString(36).substr(2,9)),
+      name: item.name || 'İsimsiz Radyo',
+      sub: (item.country || 'Dünya') + (item.codec ? ' · ' + item.codec : ''),
+      freq: item.votes ? ('⭐ ' + item.votes) : 'WEB',
+      ac: '#36e4ff',
+      ab: (item.name || 'R').substring(0,2).toUpperCase(),
+      img: item.favicon || '',
+      src: [item.url_resolved || item.url],
+      isCustom: true
+    }));
+    renderList();
+  } catch(err) {}
+}
+
+const searchInput = $('#search');
+const clearBtn = $('#clearSearch');
+if(searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if(val.length > 0) clearBtn.classList.add('show');
+    else clearBtn.classList.remove('show');
+
+    clearTimeout(searchDebounce);
+    if(val.length >= 2) searchDebounce = setTimeout(() => searchWebStations(val), 400);
+    else { webSearchResults = []; renderList(); }
+  });
+}
+if(clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    playSoundEffect('click');
+    searchInput.value = '';
+    clearBtn.classList.remove('show');
+    webSearchResults = [];
+    renderList();
+    searchInput.focus();
+  });
+}
+
+function moveStation(index, direction) {
+  playSoundEffect('click');
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= STATIONS.length) return;
+  const temp = STATIONS[index];
+  STATIONS[index] = STATIONS[newIndex];
+  STATIONS[newIndex] = temp;
+  saveCurrentOrder();
+  renderList();
+}
+
+function deleteStation(id) {
+  playSoundEffect('stop');
+  const index = STATIONS.findIndex(s => s.id === id);
+  if (index !== -1) {
+    const removedName = STATIONS[index].name;
+    STATIONS.splice(index, 1);
+    saveCurrentOrder();
+    renderList();
+    showToast(`"${removedName}" silindi!`);
+  }
+}
+
+function playStation(st, index) {
+  playSoundEffect('change');
+  currentIdx = index !== undefined ? index : STATIONS.indexOf(st);
+  currentStationObj = st;
+  currentStreamIndex = 0;
+  loadStreamUrl();
+}
+
+function loadStreamUrl() {
+  if (!currentStationObj) return;
+  const st = currentStationObj;
+  const streamUrl = st.src[currentStreamIndex];
+
+  if (hls) { hls.destroy(); hls = null; }
+  $('#stat').textContent = `Bağlanıyor (${currentStreamIndex + 1}/${st.src.length})...`;
+
+  if (streamUrl.includes('.m3u8') && Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(streamUrl);
+    hls.attachMedia(audio);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => { audio.play().then(() => $('#stat').textContent = 'Yayında').catch(()=>{}); });
+    hls.on(Hls.Events.ERROR, (event, data) => { if (data.fatal) tryNextStream(); });
+  } else {
+    audio.src = streamUrl;
+    audio.play().then(() => $('#stat').textContent = 'Yayında').catch(() => tryNextStream());
+  }
+
+  isPlaying = true;
+  const playBtn = $('#play');
+  playBtn.classList.add('playing');
+  playBtn.textContent = '⏸';
+
+  initAudioEQ();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+  $('#name').textContent = `${st.name}   ✦   `;
+  $('#sub').textContent = `${st.sub || 'Canlı Yayın'}   ✦   Yayın Adresi: ${streamUrl}   ✦   ${st.name}   ✦   `;
+  $('#freq').textContent = (st.freq || 'WEB') + ' MHz';
+  
+  const coverEl = $('#cover');
+  if (st.liveCover) {
+    coverEl.innerHTML = `<img src="${st.liveCover}" alt="${st.name}">`;
+  } else if (st.img) {
+    coverEl.innerHTML = `<img src="${st.img}" alt="${st.name}" onerror="this.parentElement.textContent='${st.ab || 'FM'}'">`;
+  } else {
+    coverEl.textContent = st.ab || 'FM';
+  }
+
+  $('#live').textContent = 'ÇALIYOR';
+  
+  document.querySelectorAll('.station').forEach(el=>el.classList.remove('active'));
+  const activeEl = document.querySelector(`[data-id="${st.id}"]`);
+  if(activeEl) activeEl.classList.add('active');
+}
+
+function tryNextStream() {
+  if (!currentStationObj) return;
+  if (currentStreamIndex < currentStationObj.src.length - 1) {
+    currentStreamIndex++;
+    loadStreamUrl();
+  } else {
+    $('#stat').textContent = 'Yayın alınamadı';
+    showToast(`"${currentStationObj.name}" yayını açılamadı.`);
+  }
+}
+audio.onerror = () => tryNextStream();
+
+let dragSrcIndex = null;
+function renderList() {
+  const listEl = $('#list');
+  if(!listEl) return;
+  const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  let filteredLocal = STATIONS.filter(s => s.name.toLowerCase().includes(query) || (s.sub && s.sub.toLowerCase().includes(query)));
+  
+  let html = '';
+  if(webSearchResults.length > 0) {
+    html += `<div style="grid-column:1/-1;color:var(--a);font-size:11px;font-weight:900;margin:4px 0">WEB ARAMA SONUÇLARI:</div>`;
+    webSearchResults.forEach(s => {
+      const avatarContent = s.img ? `<img src="${s.img}" alt="" onerror="this.parentElement.textContent='${s.ab}'">` : s.ab;
+      html += `
+        <div class="station" style="border-color:var(--c)">
+          <div class="avatar" style="background:${s.ac}">${avatarContent}</div>
+          <div class="sinfo">
+            <div class="sname">${esc(s.name)}</div>
+            <div class="ssub">${esc(s.sub)}</div>
+            <div class="sfreq">${esc(s.freq)}</div>
+          </div>
+          <button class="add-btn" onclick="addWebStationToMyList('${s.id}')">➕ Ekle</button>
+        </div>
+      `;
+    });
+    html += `<div style="grid-column:1/-1;color:var(--mu);font-size:11px;font-weight:900;margin:8px 0">KAYITLI LİSTENİZ:</div>`;
+  }
+  
+  filteredLocal.forEach((s) => {
+    const realIndex = STATIONS.indexOf(s);
+    const avatarContent = s.img ? `<img src="${s.img}" alt="" onerror="this.parentElement.textContent='${s.ab}'">` : s.ab;
+    const isCustom = s.isCustom || s.id.startsWith('custom_') || s.id.startsWith('web_');
+    
+    html += `
+      <div class="station" data-id="${s.id}" data-index="${realIndex}" draggable="true">
+        <div class="avatar" style="background:${s.sc || s.ac}">${avatarContent}</div>
+        <div class="sinfo">
+          <div class="sname">${esc(s.name)}</div>
+          <div class="ssub">${esc(s.sub)}</div>
+          <div class="sfreq">${esc(s.freq || 'WEB')} MHz</div>
+        </div>
+        <div class="drag-ctl">
+          ${isCustom ? `<button class="del-btn btn-del" title="Kanalı Sil">🗑️</button>` : ''}
+          <button class="move-btn btn-up">▲</button>
+          <button class="move-btn btn-down">▼</button>
+          <span class="drag-handle">☰</span>
+        </div>
+      </div>
+    `;
+  });
+  
+  listEl.innerHTML = html;
+  $('#count').textContent = STATIONS.length + ' Kanal';
+
+  listEl.querySelectorAll('.station').forEach(el => {
+    const idx = parseInt(el.dataset.index);
+    const id = el.dataset.id;
+
+    el.querySelector('.sinfo').addEventListener('click', () => {
+      const st = STATIONS.find(x => x.id === id);
+      if(st) playStation(st, idx);
+    });
+
+    const delBtn = el.querySelector('.btn-del');
+    if (delBtn) {
+      delBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        deleteStation(id);
+      });
+    }
+
+    el.querySelector('.btn-up').addEventListener('click', (ev) => { ev.stopPropagation(); moveStation(idx, -1); });
+    el.querySelector('.btn-down').addEventListener('click', (ev) => { ev.stopPropagation(); moveStation(idx, 1); });
+    el.addEventListener('dragstart', (e) => { dragSrcIndex = idx; el.classList.add('dragging'); });
+    el.addEventListener('dragover', (e) => e.preventDefault());
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (dragSrcIndex !== null && dragSrcIndex !== idx) {
+        playSoundEffect('click');
+        const movedItem = STATIONS.splice(dragSrcIndex, 1)[0];
+        STATIONS.splice(idx, 0, movedItem);
+        saveCurrentOrder();
+        renderList();
+      }
+    });
+  });
+}
+
+const playBtn = $('#play');
+playBtn.onclick = () => { 
+  if(audio.src && !audio.paused) {
+    playSoundEffect('stop');
+    audio.pause(); isPlaying = false;
+    playBtn.classList.remove('playing'); playBtn.textContent = '▶';
+    $('#live').textContent = 'DURDU';
+  } else if(audio.src && audio.paused) {
+    playSoundEffect('play');
+    audio.play(); isPlaying = true;
+    playBtn.classList.add('playing'); playBtn.textContent = '⏸';
+    $('#live').textContent = 'ÇALIYOR';
+  } else if(STATIONS.length) playStation(STATIONS[0], 0);
+};
+
+$('#stop').onclick = () => { 
+  playSoundEffect('stop');
+  isPlaying = false;
+  playBtn.classList.remove('playing'); playBtn.textContent = '▶';
+  if(hls) { hls.destroy(); hls = null; }
+  audio.pause(); audio.currentTime = 0; 
+  $('#live').textContent = 'DURDU'; $('#stat').textContent = 'Durduruldu'; 
+};
+
+$('#prev').onclick = () => { 
+  if(STATIONS.length) { 
+    currentIdx = (currentIdx - 1 + STATIONS.length) % STATIONS.length; 
+    playStation(STATIONS[currentIdx], currentIdx); 
+  } 
+};
+$('#next').onclick = () => { 
+  if(STATIONS.length) { 
+    currentIdx = (currentIdx + 1) % STATIONS.length; 
+    playStation(STATIONS[currentIdx], currentIdx); 
+  } 
+};
+
+$('#volume').oninput = (e) => {
+  playSoundEffect('vol');
+  audio.volume = e.target.value / 100;
+  $('#voltxt').textContent = e.target.value + '%';
+};
+
+$('#mute').onclick = () => {
+  playSoundEffect('click');
+  audio.muted = !audio.muted;
+  $('#mute').classList.toggle('on', audio.muted);
+  $('#mute').textContent = audio.muted ? '🔊 SES AÇ' : '🔇 SESSİZ';
+};
+
+$('#theme').onclick = () => {
+  playSoundEffect('click');
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+};
+
+$('#timer').onclick = () => {
+  playSoundEffect('click');
+  showToast('Uyku zamanlayıcı aktif');
+  setTimeout(() => { 
+    isPlaying = false; 
+    playBtn.classList.remove('playing'); playBtn.textContent = '▶';
+    audio.pause(); $('#live').textContent = 'ZAMANLANDI'; 
+  }, 30 * 60 * 1000);
+};
+
+$('#addModalOpen').onclick = () => {
+  playSoundEffect('click');
+  $('#addModal').classList.add('show');
+};
+$('#addClose').onclick = () => {
+  playSoundEffect('click');
+  $('#addModal').classList.remove('show');
+};
+$('#stSave').onclick = () => {
+  playSoundEffect('click');
+  const name = $('#stName').value.trim();
+  const sub = $('#stSub').value.trim();
+  const freq = $('#stFreq').value.trim();
+  const img = $('#stImg').value.trim();
+  const src = $('#stSrc').value.trim();
+  if(!name || !src) { showToast('Kanal adı ve adresi zorunludur!'); return; }
+  const newSt = {
+    id: 'custom_' + Date.now(),
+    name, sub: sub || 'Özel Kanal', freq: freq || 'WEB', cat: 'Özel',
+    ac: '#43f09b', ab: name.substring(0,2).toUpperCase(), img, src: [src],
+    isCustom: true
+  };
+  STATIONS.unshift(newSt);
+  saveCurrentOrder();
+  renderList();
+  $('#addModal').classList.remove('show');
+  showToast('Yeni kanal eklendi!');
+};
+
+renderList();
+</script>
+</body>
+</html>
